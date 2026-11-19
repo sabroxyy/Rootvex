@@ -44,7 +44,7 @@ Apache License 2.0 — see [`LICENSE`](LICENSE).
 
 ## Docs
 
-- [`docs/MANUAL.md`](docs/MANUAL.md) — project manual: how it works, setup, every build phase from Phase 0
+- [`docs/MANUAL.md`](docs/MANUAL.md) — project manual: how it works, setup, every build phase from Phase 0 ([PDF](docs/NetWarden-Manual.pdf))
 - [`docs/PROJECT_PROMPT.md`](docs/PROJECT_PROMPT.md) — build brief for Claude Code
 - [`docs/DECISIONS.md`](docs/DECISIONS.md) — hardware, models, cloud, and tooling decisions
 - [`docs/SETUP_LOG.md`](docs/SETUP_LOG.md) — Ubuntu workstation setup and fixes
