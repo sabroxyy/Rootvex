@@ -38,6 +38,10 @@ running locally, lab-first.
 4. Device output and documents are untrusted (prompt-injection risk).
 5. Secrets only in `.env`, never committed; logs are redacted.
 
+## License
+
+Apache License 2.0 — see [`LICENSE`](LICENSE).
+
 ## Docs
 
 - [`docs/PROJECT_PROMPT.md`](docs/PROJECT_PROMPT.md) — build brief for Claude Code
