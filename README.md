@@ -1,0 +1,45 @@
+# NetWarden
+
+A self-hosted, open-source AI agent that helps network and security engineers
+troubleshoot and configure network and security devices — built from scratch,
+running locally, lab-first.
+
+> Status: planning. No code yet. See [`docs/PROJECT_PROMPT.md`](docs/PROJECT_PROMPT.md)
+> for the build brief used with Claude Code.
+
+## Goals
+
+- Diagnose common network and security issues (interface down/flapping,
+  OSPF/BGP neighbors, VPN tunnels, "user can't reach a website").
+- Collect evidence from devices with **read-only** commands, analyze it, and
+  report the likely cause, evidence, proposed fix, and confidence.
+- Apply configuration changes only after a diff, explicit human approval,
+  and with a rollback plan.
+- Run fully on local hardware with open-weight models; no paid APIs required.
+
+## Planned stack
+
+| Layer | Choice |
+|---|---|
+| Model server | Ollama (OpenAI-compatible API) |
+| Models | Small model for the 6 GB dev GPU; larger models on a rented GPU when needed |
+| Agent framework | LangGraph |
+| Device access | Netmiko (later exposed as an MCP server) |
+| Vendors (order) | Cisco IOS/IOS-XE → FortiGate → Palo Alto |
+| Knowledge base | Local embeddings + local vector store (RAG) |
+| Interfaces | CLI → FastAPI → optional Open WebUI |
+| Lab | GNS3 (KVM) on the same Ubuntu machine |
+
+## Safety rules
+
+1. Lab only — never production or employer networks.
+2. Read-only, allowlisted commands by default.
+3. Config changes require diff → approval → separate tool → rollback.
+4. Device output and documents are untrusted (prompt-injection risk).
+5. Secrets only in `.env`, never committed; logs are redacted.
+
+## Docs
+
+- [`docs/PROJECT_PROMPT.md`](docs/PROJECT_PROMPT.md) — build brief for Claude Code
+- [`docs/DECISIONS.md`](docs/DECISIONS.md) — hardware, models, cloud, and tooling decisions
+- [`docs/SETUP_LOG.md`](docs/SETUP_LOG.md) — Ubuntu workstation setup and fixes
