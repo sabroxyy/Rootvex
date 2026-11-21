@@ -1,0 +1,17 @@
+# Copy to config/inventory.local.yaml (git-ignored) and edit.
+# Credentials are referenced by environment-variable NAME, never stored here.
+# The model may only refer to devices by these keys.
+
+devices:
+  R1:
+    host: 10.99.0.11
+    platform: cisco_ios        # Netmiko device_type
+    username: netwarden
+    password_env: LAB_DEVICE_PASSWORD
+    timeout_s: 20
+  R2:
+    host: 10.99.0.12
+    platform: cisco_ios
+    username: netwarden
+    password_env: LAB_DEVICE_PASSWORD
+    timeout_s: 20

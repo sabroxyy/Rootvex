@@ -4,8 +4,36 @@ A self-hosted, open-source AI agent that helps network and security engineers
 troubleshoot and configure network and security devices — built from scratch,
 running locally, lab-first.
 
-> Status: planning. No code yet. See [`docs/PROJECT_PROMPT.md`](docs/PROJECT_PROMPT.md)
-> for the build brief used with Claude Code.
+> Status: Phases 1–3 built (skeleton, agent loop, read-only device tools).
+> See [`docs/DESIGN.md`](docs/DESIGN.md) for the design and
+> [`docs/PROJECT_PROMPT.md`](docs/PROJECT_PROMPT.md) for the build brief.
+
+## Quick start
+
+```bash
+# 1. Install (Python 3.12 via uv)
+uv sync --python 3.12
+
+# 2. Configure
+cp .env.example .env                                   # model + lab password
+cp config/inventory.example.yaml config/inventory.local.yaml
+
+# 3. Start the model server (once)
+ollama pull granite4:3b
+
+# 4. Use it
+uv run netwarden config                                # effective settings
+uv run netwarden devices                               # lab inventory
+uv run netwarden check R1 "show ip ospf neighbor"      # allowlist dry-run
+uv run netwarden ask "OSPF between R1 and R2 is down" --fixtures   # no lab needed
+uv run netwarden ask "OSPF between R1 and R2 is down"              # real GNS3 lab
+
+# Tests and lint
+uv run pytest
+uv run ruff check .
+```
+
+Audit logs go to `logs/netwarden-YYYYMMDD.jsonl` (secrets redacted).
 
 ## Goals
 

@@ -1,0 +1,27 @@
+# NetWarden settings. Environment variables (NETWARDEN_*) override these.
+# Nested keys use a double underscore, e.g. NETWARDEN_LLM__MODEL.
+
+llm:
+  base_url: http://localhost:11434/v1   # Ollama; vLLM/llama.cpp serve the same API
+  model: granite4:3b
+  temperature: 0.0
+  request_timeout_s: 120
+
+agent:
+  max_steps: 12        # max tool calls per run
+  timeout_s: 300       # wall-clock limit per run
+  max_output_chars: 6000   # device output is truncated to this before the model sees it
+
+lab:
+  # Every inventory host must be inside one of these. Never add the home LAN.
+  allowed_networks:
+    - 10.99.0.0/24
+  inventory_file: config/inventory.local.yaml
+  allowlist_dir: config/allowlist
+  # "netmiko" = real SSH to the lab; "fixtures" = canned outputs (no devices needed)
+  device_backend: netmiko
+  fixtures_dir: tests/fixtures
+
+logging:
+  dir: logs
+  level: INFO
