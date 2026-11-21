@@ -77,10 +77,23 @@ sudo systemctl enable --now kbd-light.service
 Crashed once before the NVIDIA driver was active; hardware acceleration was
 turned off automatically. Re-enable from the Help menu now that the driver works.
 
+## 9. Ollama + GPU check (2026-11-21)
+
+- Ollama binary had no systemd unit; fixed by rerunning the official installer
+  (`curl -fsSL https://ollama.com/install.sh | sh`) -> 0.40.17, `ollama.service` enabled.
+- `bash lab/check_gpu.sh --load` results:
+  - GTX 1060 6GB, PCIe x16, driver 580.178.04, CUDA 13.0, no Xid errors.
+  - `granite4:3b`: **100% GPU**, **42.3 tokens/s**, 3.4 GB VRAM, peak 59 C / 122 W, 98% utilization.
+- Ollama skips its `cuda_v13` libraries for this card (compute capability 6.1 is
+  not compiled in) and uses `cuda_v12` instead. **Pascal support depends on
+  Ollama still shipping cuda_v12**: before upgrading Ollama, check the release
+  notes, and if a new version drops the GPU, reinstall the last good one with
+  `curl -fsSL https://ollama.com/install.sh | OLLAMA_VERSION=0.40.17 sh`.
+
 ## Next
 
 - [ ] Confirm `docker run hello-world` without sudo
-- [ ] Install Ollama; `ollama run granite4:3b`; check `ollama ps` shows GPU
+- [x] Install Ollama; `ollama run granite4:3b`; check `ollama ps` shows GPU
 - [ ] NVIDIA Container Toolkit
 - [ ] Open WebUI
 - [ ] GNS3 lab with two Cisco routers (OSPF) for Phase 3
