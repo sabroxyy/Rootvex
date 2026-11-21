@@ -62,12 +62,13 @@ if ! have nvidia-smi; then fail "nvidia-smi not found"; else
   pg=$(q pcie.link.gen.current); pgm=$(q pcie.link.gen.max); pw=$(q pcie.link.width.current); pwm=$(q pcie.link.width.max)
   info "PCIe now: gen $pg x$pw (max gen $pgm x$pwm). Gen drops at idle are normal; width below max is not."
   [ -n "$pw" ] && [ -n "$pwm" ] && [ "$pw" -lt "$pwm" ] 2>/dev/null && warn "PCIe width x$pw < x$pwm: card may be in a smaller slot or not fully seated"
-  thr=$(nvidia-smi -q -d PERFORMANCE 2>/dev/null | grep -E 'Thermal Slowdown|HW Slowdown|Power Brake' | grep -i active)
+  thr=$(nvidia-smi -q -d PERFORMANCE 2>/dev/null | grep -E 'Thermal Slowdown|HW Slowdown|Power Brake' | grep -E ':[[:space:]]*Active')
   [ -n "$thr" ] && warn "Throttling active now: $(echo "$thr" | xargs)" || ok "No hardware/thermal throttling active"
   ecc=$(nvidia-smi -q 2>/dev/null | grep -iE 'Retired Pages|Remapped' | head -2 | xargs)
   [ -n "$ecc" ] && info "Memory health: $ecc"
   info "Processes on the GPU:"
-  nvidia-smi --query-compute-apps=pid,process_name,used_memory --format=csv,noheader 2>/dev/null | sed 's/^/        /'
+  nvidia-smi --query-compute-apps=pid,process_name,used_memory --format=csv,noheader 2>/dev/null \
+    | awk -F', ' '{split($2, a, " "); print "        " $1 "  " a[1] "  " $NF}'
   nvidia-smi 2>/dev/null | grep -E 'Xorg|gnome-shell' | awk '{print "        display: " $0}' | sed 's/  */ /g'
 fi
 
