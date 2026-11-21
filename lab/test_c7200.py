@@ -50,8 +50,9 @@ def read_console(port: int, seconds: int) -> str:
                 if not chunk:
                     break
                 data += chunk
-                if GOOD.search(data.decode(errors="ignore")) and b"Press RETURN" in data:
-                    break
+                text = data.decode(errors="ignore")
+                if b"Press RETURN" in data or len(BAD.findall(text)) >= 3:
+                    break  # answer known; a crash loop would otherwise flood the disk
     except OSError as exc:
         return f"<console error: {exc}>"
     return re.sub(rb"\xff[\xfb-\xfe].|\xff.", b"", data).decode(errors="ignore")

@@ -4,7 +4,8 @@
 #
 #   bash lab/test_dynamips_direct.sh
 #
-# Takes about 2 minutes. Works in a temp folder, leaves nothing behind.
+# Takes at most ~3 minutes, usually seconds: each run stops as soon as IOS boots or
+# crashes. Works in a temp folder (capped at 200 MB) and leaves nothing behind.
 
 set -u
 IMG="${1:-$HOME/GNS3/images/IOS/c7200-advipservicesk9-mz.152-4.S5.image}"
@@ -17,18 +18,32 @@ work=$(mktemp -d); trap 'rm -rf "$work"' EXIT
 
 run() {  # $1 label, $2 seconds, rest = extra dynamips flags
   local label=$1 secs=$2; shift 2
-  # an idle pipe keeps the console's input open without sending anything
-  ( cd "$work" && sleep $((secs + 5)) | timeout "$secs" "$DYN" "$@" -P 7200 -t npe-400 -r 512 "$IMG" \
-      >"$work/$label.txt" 2>&1 )
+  local out="$work/$label.txt"
+  # An idle pipe keeps the console's input open; head caps the output at 2 MB.
+  ( cd "$work" && sleep $((secs + 5)) | "$DYN" "$@" -P 7200 -t npe-400 -r 512 "$IMG" 2>&1 \
+      | head -c 2000000 >"$out" ) &
+  local job=$! t=0
+  # Stop as soon as we know the answer: a crash loop writes millions of lines per minute.
+  while [ $t -lt "$secs" ]; do
+    sleep 1; t=$((t + 1))
+    grep -qE 'TLB|Press RETURN|Cisco IOS Software' "$out" 2>/dev/null && { sleep 2; break; }
+    du -sm "$work" 2>/dev/null | awk '{exit !($1 > 200)}' && break   # safety: >200 MB in temp
+  done
+  # match only the dynamips process (this script's own command line also holds the image path)
+  pkill -f "^$DYN .*-P 7200 " 2>/dev/null; sleep 1; pkill -9 -f "^$DYN .*-P 7200 " 2>/dev/null
+  wait $job 2>/dev/null
   local tlb ok
-  tlb=$(grep -c 'TLB' "$work/$label.txt")
-  ok=$(grep -cE 'Cisco IOS Software|Restricted Rights Legend|Press RETURN' "$work/$label.txt")
-  if [ "$ok" -gt 0 ] && [ "$tlb" -eq 0 ]; then echo "BOOTS    $label"
-  elif [ "$tlb" -gt 0 ]; then echo "CRASHES  $label  ($tlb TLB messages)"
-  else echo "UNCLEAR  $label  (no IOS banner within ${secs}s; last lines below)"; tail -5 "$work/$label.txt" | sed 's/^/         /'
+  tlb=$(grep -c 'TLB' "$out")
+  ok=$(grep -cE 'Cisco IOS Software|Restricted Rights Legend|Press RETURN' "$out")
+  if [ "$ok" -gt 0 ] && [ "$tlb" -eq 0 ]; then echo "BOOTS    $label  (after ${t}s)"
+  elif [ "$tlb" -gt 0 ]; then echo "CRASHES  $label  (after ${t}s)"; grep -m2 -E 'TLB|PC =' "$out" | sed 's/^/         /'
+  else echo "UNCLEAR  $label  (no IOS banner within ${secs}s; last lines below)"; tail -5 "$out" | sed 's/^/         /'
   fi
-  rm -f "$work"/c7200_* "$work"/*_nvram "$work"/*_disk* "$work"/*_rom 2>/dev/null
+  rm -rf "${work:?}"/* 2>/dev/null
 }
+
+free_mb=$(df -Pm "${TMPDIR:-/tmp}" | awk 'NR==2 {print $4}')
+[ "$free_mb" -lt 1024 ] && { echo "Only ${free_mb} MB free in ${TMPDIR:-/tmp}; free some disk space first."; exit 1; }
 
 echo
 echo "Test 1: JIT ON  (normal, 40 s)"

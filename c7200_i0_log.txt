@@ -1,1 +1,1 @@
-Nov 21 23:36:07.213 VM: trying to shutdown an inactive VM.
+Nov 21 23:38:16.205 VM: trying to shutdown an inactive VM.
