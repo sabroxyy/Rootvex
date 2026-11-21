@@ -181,10 +181,24 @@ def ensure_templates(api: GNS3, templates: dict, env: dict) -> dict[str, dict]:
     return out
 
 
+def short_ifname(name: str) -> str:
+    """'GigabitEthernet0/1', 'Gi0/1' and 'g0/1' all become 'gi0/1'."""
+    n = name.strip().lower()
+    for long, short in (("gigabitethernet", "gi"), ("fastethernet", "fa"), ("ethernet", "e")):
+        if n.startswith(long):
+            return short + n[len(long) :]
+    return (
+        {"g": "gi", "f": "fa"}.get(n[:1], n[:1]) + n[1:]
+        if n[:1] in "gf" and n[1:2].isdigit()
+        else n
+    )
+
+
 def find_port(node: dict, spec: str) -> tuple[int, int]:
     """Map 'Gi0/1', 'eth0', 'tap-nw' or a bare port number to (adapter, port)."""
+    want = short_ifname(spec)
     for p in node["ports"]:
-        if spec.lower() in (p["name"].lower(), p.get("short_name", "").lower()):
+        if want in (short_ifname(p["name"]), short_ifname(p.get("short_name", ""))):
             return p["adapter_number"], p["port_number"]
     if spec.isdigit():
         for p in node["ports"]:
@@ -299,6 +313,18 @@ def main() -> None:
     for n in topo["nodes"].values():
         if n.get("template") == "router":
             n["template"] = platform
+    # SW1: a managed IOSvL2 switch when that image exists, else GNS3's built-in switch.
+    switch = env.get("LAB_SWITCH_PLATFORM", topo.get("switch_platform", "builtin"))
+    for n in topo["nodes"].values():
+        if n.get("template") == "switch":
+            if switch == "builtin":
+                del n["template"]
+                n.pop("config", None)
+                n["builtin"] = "ethernet_switch"
+                n["ports"] = topo["builtin_switch_ports"]
+            else:
+                n["template"] = switch
+    print(f"Switch platform: {switch}")
     used = {n["template"] for n in topo["nodes"].values() if "template" in n}
     topo["templates"] = {k: v for k, v in topo["templates"].items() if k in used}
     print(f"Router platform: {platform}")
@@ -386,13 +412,27 @@ def main() -> None:
         has_config = "yes" if name in rendered else "-"
         print(f"  node {name:<10} {node['node_type']:<16} config: {has_config}")
 
+    def port_map(name: str) -> dict:
+        n = topo["nodes"][name]
+        return n.get("ports") or topo["templates"].get(n.get("template"), {}).get("ports", {})
+
+    def has_port(name: str, port: str) -> bool:
+        ports = port_map(name)
+        logical = bool(re.fullmatch(r"mgmt|if\d|p\d", port))
+        return not (ports and logical and port not in ports)
+
     print("Links:")
     for a, b in topo["links"]:
+        # Skip links to a logical port the chosen platform doesn't have
+        # (the built-in SW1 has no "mgmt" port).
+        missing = [e for e in (a, b) if not has_port(*e.split(maxsplit=1))]
+        if missing:
+            print(f"  {a:<16} <-> {b}   (skipped: {missing[0]} not on this platform)")
+            continue
         ends = []
         for end in (a, b):
             name, port = end.split(maxsplit=1)
-            tpl = topo["templates"].get(topo["nodes"][name].get("template"), {})
-            port = tpl.get("ports", {}).get(port, port)  # logical -> real interface name
+            port = port_map(name).get(port, port)  # logical -> real interface name
             adapter, port_no = find_port(nodes[name], port)
             ends.append(
                 {

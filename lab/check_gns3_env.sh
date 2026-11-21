@@ -20,10 +20,14 @@ mask() { sed -E 's/((password|secret|token)[^=:]*[=:][[:space:]]*"?)[^",]+/\1***
 PLATFORM=c7200
 LAB_C7200=c7200-advipservicesk9-mz.152-4.S5.image
 LAB_IOSV=vios-adventerprisek9-m.spa.159-3.m9.qcow2
+LAB_IOSVL2=vios_l2-adventerprisek9-m.ssa.high_iron_20200929.qcow2
+SWITCH=builtin
 if [ -f .env ]; then
   v=$(grep -E '^LAB_ROUTER_PLATFORM=' .env | cut -d= -f2-); [ -n "$v" ] && PLATFORM=$v
   v=$(grep -E '^LAB_C7200_IMAGE=' .env | cut -d= -f2-);     [ -n "$v" ] && LAB_C7200=$v
   v=$(grep -E '^LAB_IOSV_IMAGE=' .env | cut -d= -f2-);      [ -n "$v" ] && LAB_IOSV=$v
+  v=$(grep -E '^LAB_IOSVL2_IMAGE=' .env | cut -d= -f2-);    [ -n "$v" ] && LAB_IOSVL2=$v
+  v=$(grep -E '^LAB_SWITCH_PLATFORM=' .env | cut -d= -f2-); [ -n "$v" ] && SWITCH=$v
 fi
 
 section "Host"
@@ -170,6 +174,11 @@ if [ -n "${imgdir:-}" ]; then
   ls -la "$imgdir/$sub" 2>/dev/null | grep -viE 'empty|OVMF|^total|md5sum' | sed 's/^/      /'
   if [ -f "$imgdir/$sub/$f" ]; then ok "router image $f present ($(du -h "$imgdir/$sub/$f" | cut -f1))"
   else fail "router image $f missing in $imgdir/$sub (copy it there, or set $var in .env)"; fi
+  info "Switch platform: $SWITCH"
+  if [ "$SWITCH" = "iosvl2" ]; then
+    if [ -f "$imgdir/QEMU/$LAB_IOSVL2" ]; then ok "switch image $LAB_IOSVL2 present"
+    else fail "switch image $LAB_IOSVL2 missing in $imgdir/QEMU (or set LAB_IOSVL2_IMAGE in .env)"; fi
+  fi
 else fail "No GNS3 images folder found"; fi
 
 section "Management network for the agent (tap-nw)"

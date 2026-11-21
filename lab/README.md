@@ -31,9 +31,22 @@ Routers run as **Cisco 7200 (Dynamips)** with `c7200-advipservicesk9-mz.152-4.S5
 | `if2` | GigabitEthernet2/0 | GigabitEthernet0/2 |
 | `if3` | GigabitEthernet3/0 | GigabitEthernet0/3 |
 
-To use IOSv later, set `LAB_ROUTER_PLATFORM=iosv` in `.env` and rebuild; the
-configs don't change. There is no switch image yet, so SW1 is GNS3's built-in
-(unmanaged) switch and the port-security fault is not available.
+**The c7200 15.2(4)S5 image does not boot on Dynamips 0.2.25** (TLB exception
+loop, see `docs/SETUP_LOG.md` section 11). The lab therefore moves to **IOSv**
+from CML-Personal:
+
+```
+LAB_ROUTER_PLATFORM=iosv
+LAB_SWITCH_PLATFORM=iosvl2
+```
+
+The configs don't change. With `iosvl2`, SW1 is a managed switch (10.99.0.21)
+with ports p1 = Gi1/0 (PC1), p2 = Gi0/1 (R1) and mgmt = Gi0/0; with `builtin`,
+SW1 is GNS3's unmanaged switch and its management link is skipped.
+
+Debug helpers: `lab/test_c7200.py` (Dynamips variants in a throwaway project)
+and `lab/test_dynamips_direct.sh` (Dynamips without GNS3). Both stop a router
+after the first crash messages, because a crash loop can fill the disk.
 
 ## Build it in GNS3
 
