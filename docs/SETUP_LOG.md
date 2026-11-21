@@ -98,6 +98,20 @@ turned off automatically. Re-enable from the Help menu now that the driver works
 | `granite4:3b`, more recordings | **Correct**, high confidence: R1 area 0 vs R2 area 1, 11 steps, evidence verified |
 | `qwen3.5:4b` | Timed out: 3,000+ "thinking" tokens in one step at ~29 tok/s. Fixed with `max_tokens` and `reasoning_effort` settings |
 
+## 11. GNS3 lab: c7200 image does not boot (2026-11-22)
+
+- GNS3 2.2.61 + KVM + ubridge + Docker all healthy (`lab/check_gns3_env.sh`); GNS3 VM off.
+- Only router image available: `c7200-advipservicesk9-mz.152-4.S5.image` (ELF, 84 MB,
+  md5 f90e916405f5da26b708ed2e9095351e). Lab built with `lab/build_gns3_lab.py`.
+- Every c7200 crashes ~0.2 s after power-on: `TLB (Store) Exception`, PC 0x8316ede0,
+  write to 0x38005f, looping. Dynamips 0.2.25-1~resolute1.
+- Ruled out with `lab/test_c7200.py`: RAM 256/384/512, sparse memory on/off, midplane
+  std/vxr, I/O memory 10%, ghost IOS off, Idle-PC empty.
+- **Incident:** the crash loop wrote ~105 GB of logs (`dynamips_i*_stdout.txt`,
+  `c7200_i*_log.txt`) and filled the SSD. Deleted; test scripts now stop a router after
+  3 crash messages. Never leave crashing Dynamips routers running.
+- Conclusion: this image does not run on this Dynamips build. Need another router image.
+
 ## Next
 
 - [ ] Confirm `docker run hello-world` without sudo
