@@ -7,11 +7,27 @@ from rich.console import Console
 from rich.table import Table
 
 from netwarden import __version__
-from netwarden.config import load_settings
+from netwarden.config import PROJECT_ROOT, Settings, load_settings
 from netwarden.log import setup_logging
 
 app = typer.Typer(help="NetWarden - lab-only AI troubleshooting agent.", no_args_is_help=True)
 console = Console()
+
+
+def _load_lab(s: Settings, fixtures: bool):
+    """Inventory + allowlist + runner. --fixtures falls back to the example inventory."""
+    from netwarden.devices.allowlist import Allowlist
+    from netwarden.devices.connection import FixtureRunner, NetmikoRunner
+    from netwarden.devices.inventory import load_inventory
+
+    inv_path = s.resolve(s.lab.inventory_file)
+    if fixtures and not inv_path.exists():
+        inv_path = PROJECT_ROOT / "config/inventory.example.yaml"
+    inventory = load_inventory(inv_path, s.lab.allowed_networks)
+    allowlist = Allowlist.load(s.resolve(s.lab.allowlist_dir))
+    use_fixtures = fixtures or s.lab.device_backend == "fixtures"
+    runner = FixtureRunner(s.resolve(s.lab.fixtures_dir)) if use_fixtures else NetmikoRunner()
+    return inventory, allowlist, runner
 
 
 @app.command()
@@ -32,22 +48,78 @@ def show_config() -> None:
 
 
 @app.command()
+def devices(fixtures: bool = typer.Option(False, help="Use the example inventory.")) -> None:
+    """List lab devices from the inventory (after the lab-network check)."""
+    inventory, _, _ = _load_lab(load_settings(), fixtures)
+    table = Table("name", "host", "platform", "username", "password env var")
+    for d in inventory:
+        table.add_row(d.name, str(d.host), d.platform, d.username, d.password_env)
+    console.print(table)
+
+
+@app.command()
+def check(device: str, command: str, fixtures: bool = typer.Option(False)) -> None:
+    """Dry-run: would this command be allowed on this device? Nothing is sent."""
+    inventory, allowlist, _ = _load_lab(load_settings(), fixtures)
+    dev = inventory.get(device)
+    d = allowlist.check(dev.platform, command)
+    if d.allowed:
+        console.print(f"[green]ALLOWED[/green] {dev.name} ({dev.platform}): {d.command}")
+    else:
+        console.print(f"[red]DENIED[/red] {dev.name} ({dev.platform}): {d.command} - {d.reason}")
+        raise typer.Exit(1)
+
+
+@app.command()
 def ask(
     question: str = typer.Argument(..., help="Describe the problem in plain language."),
+    fixtures: bool = typer.Option(False, help="Use recorded outputs instead of SSH."),
+    fake: bool = typer.Option(False, help="Phase 2 fake tool only (no inventory needed)."),
+    show_steps: bool = typer.Option(False, "--steps", help="Print every tool call."),
 ) -> None:
-    """Troubleshoot a problem (Phase 2: fake interface tool only)."""
+    """Troubleshoot a problem: plan, collect read-only evidence, report."""
+    from langchain_core.messages import ToolMessage
+
     from netwarden.agent.graph import run_agent
     from netwarden.llm import build_llm
-    from netwarden.tools.fake import make_fake_tools
 
     s = load_settings()
     log_file = setup_logging(s.resolve(s.logging.dir), s.logging.level)
-    with console.status(f"Thinking with {s.llm.model}..."):
-        state = run_agent(question, build_llm(s.llm), make_fake_tools(), s.agent, ["R1", "R2"])
+    if fake:
+        from netwarden.tools.fake import make_fake_tools
+
+        tools, names = make_fake_tools(), ["R1", "R2"]
+    else:
+        from netwarden.tools.device_tools import make_device_tools
+
+        inventory, allowlist, runner = _load_lab(s, fixtures)
+        tools = make_device_tools(inventory, allowlist, runner, s.agent.max_output_chars)
+        names = inventory.names()
+
+    import openai
+
+    try:
+        with console.status(f"Troubleshooting with {s.llm.model}..."):
+            state = run_agent(question, build_llm(s.llm), tools, s.agent, names)
+    except openai.APIConnectionError:
+        console.print(
+            f"[red]Cannot reach the model server at {s.llm.base_url}.[/red] "
+            "Is Ollama running? Try: ollama serve  /  ollama pull " + s.llm.model
+        )
+        raise typer.Exit(2) from None
+    except openai.NotFoundError:
+        console.print(f"[red]Model {s.llm.model!r} not found.[/red] Try: ollama pull {s.llm.model}")
+        raise typer.Exit(2) from None
+
     console.rule("Plan")
-    console.print(state.get("plan", ""))
+    console.print(state.get("plan", ""), markup=False)
+    if show_steps:
+        console.rule("Tool calls")
+        for m in state["messages"]:
+            if isinstance(m, ToolMessage):
+                console.print(m.content[:1500], markup=False)
     console.rule("Report")
-    console.print(state["report"].to_text())
+    console.print(state["report"].to_text(), markup=False)
     console.print(f"\n[dim]run_id={state['run_id']}  steps={state['steps']}  log={log_file}[/dim]")
 
 

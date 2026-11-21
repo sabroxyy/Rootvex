@@ -1,0 +1,8 @@
+*** IP Routing is NSF aware ***
+Routing Protocol is "ospf 1"
+  Router ID 1.1.1.1
+  Number of areas in this router is 1. 1 normal 0 stub 0 nssa
+  Routing for Networks:
+    10.0.12.0 0.0.0.3 area 0
+    10.10.10.0 0.0.0.255 area 0
+  Distance: (default is 110)

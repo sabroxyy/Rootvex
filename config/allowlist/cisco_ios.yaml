@@ -1,0 +1,65 @@
+# Read-only commands NetWarden may run on Cisco IOS / IOS-XE. Deny by default.
+# Each entry is a regex matched against the WHOLE normalized command
+# (lower-case, single spaces). Abbreviations like "sh run" are NOT accepted.
+# One output filter is allowed after the command: | include|exclude|begin|section|count <text>
+#
+# Note: "show running-config" can contain secrets. Output is redacted before the
+# model sees it and before it is logged.
+
+platforms: [cisco_ios, cisco_xe]
+
+commands:
+  # General
+  - '^show version$'
+  - '^show clock$'
+  - '^show logging$'
+  - '^show inventory$'
+  - '^show processes cpu( sorted)?( history)?$'
+  - '^show memory statistics$'
+  - '^show running-config( interface \S+)?$'
+  - '^show ip vrf( brief)?$'
+  - '^show vrf( brief)?$'
+  # Interfaces / layer 2
+  - '^show ip interface brief$'
+  - '^show ipv6 interface brief$'
+  - '^show interfaces( \S+)?$'
+  - '^show interfaces( \S+)? (status|counters|description|switchport|trunk)$'
+  - '^show interfaces status err-disabled$'
+  - '^show ip interface( \S+)?$'
+  - '^show controllers \S+$'
+  - '^show vlan( brief)?$'
+  - '^show spanning-tree( vlan \d+)?( brief)?$'
+  - '^show mac address-table( dynamic)?( vlan \d+| interface \S+)?$'
+  - '^show port-security( interface \S+)?$'
+  - '^show errdisable recovery$'
+  - '^show cdp neighbors( detail)?$'
+  - '^show lldp neighbors( detail)?$'
+  - '^show etherchannel summary$'
+  # IP / routing
+  - '^show ip route( vrf \S+)?( \S+)?( \S+)?$'
+  - '^show ip arp( vrf \S+)?$'
+  - '^show ip protocols$'
+  - '^show ip ospf$'
+  - '^show ip ospf neighbor( detail)?$'
+  - '^show ip ospf interface( brief| \S+)?$'
+  - '^show ip ospf database$'
+  - '^show ip bgp( summary)?$'
+  - '^show ip bgp neighbors( \S+)?$'
+  - '^show bgp ipv4 unicast( summary)?$'
+  - '^show ip eigrp neighbors$'
+  - '^show standby( brief)?$'
+  - '^show ip nat translations$'
+  - '^show ip nat statistics$'
+  - '^show access-lists( \S+)?$'
+  - '^show ip access-lists( \S+)?$'
+  - '^show ip dhcp (binding|pool|conflict)$'
+  - '^show hosts$'
+  # VPN
+  - '^show crypto isakmp sa( detail)?$'
+  - '^show crypto ikev2 sa( detail)?$'
+  - '^show crypto ipsec sa( peer \S+)?$'
+  - '^show crypto session( detail)?$'
+  - '^show interfaces tunnel\d+$'
+  # Diagnostics (read-only; bounded by device timeout)
+  - '^ping( vrf \S+)? \S+( source \S+)?( repeat \d{1,2})?$'
+  - '^traceroute( vrf \S+)? \S+$'
