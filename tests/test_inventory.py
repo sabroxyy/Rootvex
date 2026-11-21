@@ -16,7 +16,7 @@ def write(tmp_path, body):
 
 def test_example_inventory_loads():
     inv = load_inventory(PROJECT_ROOT / "config/inventory.example.yaml", LAB)
-    assert inv.names() == ["R1", "R2"]
+    assert inv.names() == ["BR1", "ISP1", "R1", "R2", "SW1"]
     assert inv.get("r1").host == ipaddress.IPv4Address("10.99.0.11")
 
 
