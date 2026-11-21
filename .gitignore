@@ -26,3 +26,4 @@ logs/
 .ruff_cache/
 dist/
 gns3-check.txt
+gpu-check.txt
