@@ -17,6 +17,7 @@ Usage (from the repo root, GNS3 GUI open so its server runs):
     uv run python lab/build_gns3_lab.py                 # build, leave nodes stopped
     uv run python lab/build_gns3_lab.py --start         # build, start, set Idle-PC
     uv run python lab/build_gns3_lab.py --rebuild       # delete the old project first
+    uv run python lab/build_gns3_lab.py --idlepc        # set Idle-PC on the running lab
 """
 
 from __future__ import annotations
@@ -28,6 +29,7 @@ import json
 import os
 import re
 import sys
+import time
 import urllib.error
 import urllib.request
 import zipfile
@@ -199,21 +201,51 @@ def ios_config_zip(text: str) -> bytes:
     return buf.getvalue()
 
 
-def set_idlepc(api: GNS3, pid: str, nodes: dict, templates: dict) -> None:
-    """Dynamips routers without an Idle-PC value use 100% of a CPU core each."""
+def pick_proposal(proposals: list[str]) -> str | None:
+    """Dynamips proposals look like '0x6060aed4 [52]'. GNS3 prefers counts of 50-60."""
+    scored = []
+    for p in proposals:
+        m = re.match(r"(0x[0-9a-fA-F]+)\s*\[(\d+)\]", p.strip())
+        if m:
+            scored.append((abs(int(m.group(2)) - 55), m.group(1)))
+    return min(scored)[1] if scored else None
+
+
+def set_idlepc(api: GNS3, pid: str, nodes: dict, templates: dict, boot_wait: int = 0) -> None:
+    """Dynamips routers without an Idle-PC value use 100% of a CPU core each.
+
+    The value can only be measured once IOS has finished booting, so wait first,
+    retry, and fall back to the proposal list if auto-detection finds nothing.
+    """
     routers = [n for n in nodes.values() if n["node_type"] == "dynamips"]
     if not routers or routers[0]["properties"].get("idlepc"):
         return
-    print("Computing Idle-PC for the c7200 (about a minute)...")
-    try:
-        idle = api.call(
-            "GET",
-            f"/projects/{pid}/nodes/{routers[0]['node_id']}/dynamips/auto_idlepc",
-            timeout=300,
-        )["idlepc"]
-    except SystemExit as exc:
-        print(f"  Could not compute Idle-PC: {exc}")
-        print("  In the GNS3 GUI: right-click R1 > Idle-PC > Auto Idle-PC.")
+    if boot_wait:
+        print(f"Waiting {boot_wait}s for IOS to boot before measuring Idle-PC...")
+        time.sleep(boot_wait)
+    base = f"/projects/{pid}/nodes/{routers[0]['node_id']}/dynamips"
+    idle = None
+    for attempt in range(1, 4):
+        print(
+            f"Computing Idle-PC on {routers[0]['name']} (attempt {attempt}/3, up to 2 minutes)..."
+        )
+        try:
+            idle = api.call("GET", f"{base}/auto_idlepc", timeout=300)["idlepc"]
+            break
+        except SystemExit as exc:
+            print(f"  not yet: {str(exc).split(': ', 1)[-1]}")
+            time.sleep(30)
+    if not idle:
+        try:
+            proposals = api.call("GET", f"{base}/idlepc_proposals", timeout=300)
+            idle = pick_proposal(proposals)
+            print(f"  proposals: {proposals}")
+        except SystemExit as exc:
+            print(f"  no proposals: {exc}")
+    if not idle:
+        print("  Could not find an Idle-PC value. Routers still work, each using one CPU core.")
+        print("  Try later:  uv run python lab/build_gns3_lab.py --idlepc")
+        print("  or in the GNS3 GUI: right-click R1 > Idle-PC, pick a value marked with *.")
         return
     for r in routers:
         api.call("PUT", f"/projects/{pid}/nodes/{r['node_id']}", {"properties": {"idlepc": idle}})
@@ -221,6 +253,7 @@ def set_idlepc(api: GNS3, pid: str, nodes: dict, templates: dict) -> None:
         if t.get("template_type") == "dynamips":
             api.call("PUT", f"/templates/{t['template_id']}", {"idlepc": idle})
     print(f"  Idle-PC {idle} set on {len(routers)} routers and saved in the template.")
+    print(f"  Tip: add LAB_C7200_IDLEPC={idle} to .env so future builds skip this step.")
 
 
 def main() -> None:
@@ -231,6 +264,9 @@ def main() -> None:
     ap.add_argument("--topology", type=Path, default=LAB_DIR / "topology.yaml")
     ap.add_argument("--rebuild", action="store_true", help="delete an existing project first")
     ap.add_argument("--start", action="store_true", help="start all nodes after building")
+    ap.add_argument(
+        "--idlepc", action="store_true", help="only set Idle-PC on the existing, running lab"
+    )
     args = ap.parse_args()
 
     topo = yaml.safe_load(args.topology.read_text())
@@ -242,6 +278,20 @@ def main() -> None:
 
     version = api.call("GET", "/version")["version"]
     print(f"GNS3 server {version} at {args.server}")
+
+    if args.idlepc:
+        proj = next((p for p in api.call("GET", "/projects") if p["name"] == topo["project"]), None)
+        if not proj:
+            raise SystemExit(f"Project {topo['project']!r} not found. Build it first.")
+        if proj["status"] != "opened":
+            api.call("POST", f"/projects/{proj['project_id']}/open", {})
+        nodes = {n["name"]: n for n in api.call("GET", f"/projects/{proj['project_id']}/nodes")}
+        for n in nodes.values():
+            if n["node_type"] == "dynamips":
+                n["properties"]["idlepc"] = ""  # measure again even if one is set
+        templates = {t["name"]: t for t in api.call("GET", "/templates")}
+        set_idlepc(api, proj["project_id"], nodes, templates)
+        return
 
     platform = env.get("LAB_ROUTER_PLATFORM", topo["router_platform"])
     if platform not in topo["templates"]:
@@ -357,7 +407,7 @@ def main() -> None:
     if args.start:
         print("Starting all nodes...")
         api.call("POST", f"/projects/{pid}/nodes/start", {}, timeout=300)
-        set_idlepc(api, pid, nodes, templates)
+        set_idlepc(api, pid, nodes, templates, boot_wait=90)
 
     print(f"\nDone. Open project {project_name!r} in the GNS3 GUI.")
     print("Then from the host:  ssh netwarden@10.99.0.11   (give the routers 1-3 minutes)")
