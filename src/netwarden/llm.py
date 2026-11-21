@@ -20,4 +20,6 @@ def build_llm(cfg: LLMSettings) -> BaseChatModel:
         temperature=cfg.temperature,
         timeout=cfg.request_timeout_s,
         max_retries=1,
+        max_tokens=cfg.max_tokens,
+        reasoning_effort=cfg.reasoning_effort,
     )
