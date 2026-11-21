@@ -25,3 +25,4 @@ logs/
 # Tooling
 .ruff_cache/
 dist/
+gns3-check.txt

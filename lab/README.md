@@ -21,6 +21,12 @@ work in PNETLab too (see the end of this page).
 
 ## Build it in GNS3
 
+First check the workstation (read-only, no sudo) and fix any FAIL lines:
+
+```bash
+bash lab/check_gns3_env.sh | tee gns3-check.txt
+```
+
 One-time host setup:
 
 ```bash
