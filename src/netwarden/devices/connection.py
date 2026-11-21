@@ -65,7 +65,39 @@ class FixtureRunner:
 
     def run(self, device: Device, command: str) -> str:
         base = command.split(" | ")[0]
-        path = self.directory / device.platform / device.name / f"{fixture_slug(base)}.txt"
-        if not path.exists():
-            raise DeviceError(f"no recorded output for {device.name}: {base!r}")
-        return path.read_text()
+        folder = self.directory / device.platform / device.name
+        path = folder / f"{fixture_slug(base)}.txt"
+        if path.exists():
+            return path.read_text()
+        # "show ip ospf interface Gi0/1" or "show running-config interface Gi0/1":
+        # cut that interface's block out of the full recorded output.
+        words = base.split()
+        if len(words) >= 3:
+            # parent command = drop the interface name, then also a trailing "interface"
+            candidates = [words[:-1]]
+            if words[-2].lower() == "interface":
+                candidates.append(words[:-2])
+            for cand in candidates:
+                full = folder / f"{fixture_slug(' '.join(cand))}.txt"
+                if full.exists():
+                    block = _interface_block(full.read_text(), words[-1])
+                    if block:
+                        return block
+        raise DeviceError(f"no recorded output for {device.name}: {base!r}")
+
+
+def _interface_block(text: str, name: str) -> str:
+    """Return the lines from `name` (or `interface name`) up to the next top-level block."""
+    want = name.lower()
+    out: list[str] = []
+    for line in text.splitlines():
+        top = line[:1] not in (" ", "\t", "") and not line.startswith("!")
+        if top:
+            head = line.lower().removeprefix("interface ").split()
+            if out:
+                break
+            if head and head[0] == want:
+                out.append(line)
+        elif out:
+            out.append(line)
+    return "\n".join(out)

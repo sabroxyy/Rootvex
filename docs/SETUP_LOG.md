@@ -90,6 +90,14 @@ turned off automatically. Re-enable from the Help menu now that the driver works
   notes, and if a new version drops the GPU, reinstall the last good one with
   `curl -fsSL https://ollama.com/install.sh | OLLAMA_VERSION=0.40.17 sh`.
 
+## 10. First real agent runs (fixtures, OSPF area mismatch)
+
+| Model | Result |
+|---|---|
+| `granite4:3b`, first run | Missed the cause: saw "no neighbors" and stopped (several commands had no recording) |
+| `granite4:3b`, more recordings | **Correct**, high confidence: R1 area 0 vs R2 area 1, 11 steps, evidence verified |
+| `qwen3.5:4b` | Timed out: 3,000+ "thinking" tokens in one step at ~29 tok/s. Fixed with `max_tokens` and `reasoning_effort` settings |
+
 ## Next
 
 - [ ] Confirm `docker run hello-world` without sudo
