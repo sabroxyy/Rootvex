@@ -1,18 +1,21 @@
 """Build the NetWarden GNS3 lab (Stage B) through the GNS3 server REST API.
 
-Reads lab/topology.yaml, creates the templates if missing, creates the project,
-nodes and links, and loads every device's startup config:
+Reads lab/topology.yaml, creates the templates it needs, the project, nodes and
+links, and loads every device's startup config:
 
-  * IOSv / IOSvL2: config goes on a config disk as ios_config.txt (GNS3
-    "create_config_disk"); IOSv reads it on first boot. Needs `mtools` on the host.
+  * Cisco 7200 (Dynamips): config is written as the node's startup-config,
+    which GNS3 loads into NVRAM when the router starts. With --start, an Idle-PC
+    value is computed so the routers don't each burn a full CPU core.
+  * IOSv (QEMU): config goes on a config disk as ios_config.txt; needs `mtools`.
   * Docker PCs / web server: /etc/network/interfaces is written into the node.
 
-Secrets ({{LAB_DEVICE_PASSWORD}}, {{LAB_VPN_PSK}}) come from .env / the environment
-and are only written into the GNS3 project on this machine, never into the repo.
+Router configs use logical ports ({{IF_MGMT}}, {{IF1}}, ...) that the router
+platform maps to real interfaces. Secrets ({{LAB_DEVICE_PASSWORD}}, {{LAB_VPN_PSK}})
+come from .env and are only written into the GNS3 project on this machine.
 
-Usage (from the repo root, GNS3 server running):
+Usage (from the repo root, GNS3 GUI open so its server runs):
     uv run python lab/build_gns3_lab.py                 # build, leave nodes stopped
-    uv run python lab/build_gns3_lab.py --start         # build and start everything
+    uv run python lab/build_gns3_lab.py --start         # build, start, set Idle-PC
     uv run python lab/build_gns3_lab.py --rebuild       # delete the old project first
 """
 
@@ -45,14 +48,14 @@ class GNS3:
             token = base64.b64encode(f"{user}:{password or ''}".encode()).decode()
             self.auth = f"Basic {token}"
 
-    def call(self, method: str, path: str, body=None, raw: bytes | None = None):
+    def call(self, method: str, path: str, body=None, raw: bytes | None = None, timeout=120):
         data = raw if raw is not None else (json.dumps(body).encode() if body is not None else None)
         req = urllib.request.Request(self.url + path, data=data, method=method)
         req.add_header("Content-Type", "application/octet-stream" if raw else "application/json")
         if self.auth:
             req.add_header("Authorization", self.auth)
         try:
-            with urllib.request.urlopen(req, timeout=120) as resp:
+            with urllib.request.urlopen(req, timeout=timeout) as resp:
                 text = resp.read().decode() or "null"
                 return json.loads(text) if text.strip()[:1] in "{[n" else text
         except urllib.error.HTTPError as exc:
@@ -96,9 +99,16 @@ def load_env() -> dict[str, str]:
     return env
 
 
-def render(text: str, env: dict[str, str]) -> str:
+def render(text: str, env: dict[str, str], ports: dict[str, str] | None = None) -> str:
+    """Fill {{NAME}}: interface names from the router platform, secrets from .env."""
+    port_vars = {
+        f"IF_{k.upper()}" if k == "mgmt" else k.upper(): v for k, v in (ports or {}).items()
+    }
+
     def sub(m: re.Match) -> str:
         key = m.group(1)
+        if key in port_vars:
+            return port_vars[key]
         if not env.get(key) or env[key] in ("change-me", "change-me-too"):
             raise SystemExit(f"Set {key} in .env (see .env.example) before building the lab.")
         return env[key]
@@ -114,7 +124,22 @@ def ensure_templates(api: GNS3, templates: dict, env: dict) -> dict[str, dict]:
             out[key] = existing[t["name"]]
             print(f"  template {t['name']!r} exists")
             continue
-        if t["type"] == "qemu":
+        if t["type"] == "dynamips":
+            body = {
+                "name": t["name"],
+                "template_type": "dynamips",
+                "compute_id": "local",
+                "category": "router",
+                "symbol": ":/symbols/router.svg",
+                "platform": "c7200",
+                "image": env.get(t["image_env"], t["image_default"]),
+                "ram": t["ram"],
+                "nvram": 512,
+                "idlepc": env.get("LAB_C7200_IDLEPC", ""),
+                "console_type": "telnet",
+                **t["slots"],
+            }
+        elif t["type"] == "qemu":
             image = env.get(t["image_env"], t["image_default"])
             body = {
                 "name": t["name"],
@@ -149,7 +174,7 @@ def ensure_templates(api: GNS3, templates: dict, env: dict) -> dict[str, dict]:
                 "console_type": "none" if "nginx" in t["image"] else "telnet",
             }
         out[key] = api.call("POST", "/templates", body)
-        extra = f" (image {body.get('hda_disk_image') or body['image']})"
+        extra = f" (image {body.get('hda_disk_image') or body.get('image')})"
         print(f"  template {t['name']!r} created{extra}")
     return out
 
@@ -174,6 +199,30 @@ def ios_config_zip(text: str) -> bytes:
     return buf.getvalue()
 
 
+def set_idlepc(api: GNS3, pid: str, nodes: dict, templates: dict) -> None:
+    """Dynamips routers without an Idle-PC value use 100% of a CPU core each."""
+    routers = [n for n in nodes.values() if n["node_type"] == "dynamips"]
+    if not routers or routers[0]["properties"].get("idlepc"):
+        return
+    print("Computing Idle-PC for the c7200 (about a minute)...")
+    try:
+        idle = api.call(
+            "GET",
+            f"/projects/{pid}/nodes/{routers[0]['node_id']}/dynamips/auto_idlepc",
+            timeout=300,
+        )["idlepc"]
+    except SystemExit as exc:
+        print(f"  Could not compute Idle-PC: {exc}")
+        print("  In the GNS3 GUI: right-click R1 > Idle-PC > Auto Idle-PC.")
+        return
+    for r in routers:
+        api.call("PUT", f"/projects/{pid}/nodes/{r['node_id']}", {"properties": {"idlepc": idle}})
+    for t in templates.values():
+        if t.get("template_type") == "dynamips":
+            api.call("PUT", f"/templates/{t['template_id']}", {"idlepc": idle})
+    print(f"  Idle-PC {idle} set on {len(routers)} routers and saved in the template.")
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
     ap.add_argument("--server", default=os.environ.get("GNS3_SERVER", "http://127.0.0.1:3080"))
@@ -194,25 +243,38 @@ def main() -> None:
     version = api.call("GET", "/version")["version"]
     print(f"GNS3 server {version} at {args.server}")
 
+    platform = env.get("LAB_ROUTER_PLATFORM", topo["router_platform"])
+    if platform not in topo["templates"]:
+        raise SystemExit(f"Unknown router platform {platform!r} (see topology.yaml templates)")
+    for n in topo["nodes"].values():
+        if n.get("template") == "router":
+            n["template"] = platform
+    used = {n["template"] for n in topo["nodes"].values() if "template" in n}
+    topo["templates"] = {k: v for k, v in topo["templates"].items() if k in used}
+    print(f"Router platform: {platform}")
+
     # Render every config first, so a missing secret stops us before anything is created.
     rendered: dict[str, str] = {}
     for name, n in topo["nodes"].items():
         src = n.get("config") or n.get("network")
         if src:
-            rendered[name] = render((LAB_DIR / src).read_text(), env)
+            ports = topo["templates"].get(n.get("template"), {}).get("ports")
+            rendered[name] = render((LAB_DIR / src).read_text(), env, ports)
 
-    # Cisco images are licensed (CML-Personal), so they are never downloaded for you.
-    have = {i["filename"] for i in api.call("GET", "/computes/local/qemu/images")}
-    found = sorted(f for f in have if f.endswith(".qcow2") and not f.startswith("empty"))
+    # Cisco images are licensed, so they are never downloaded for you.
     for t in topo["templates"].values():
-        if t["type"] == "qemu":
-            image = env.get(t["image_env"], t["image_default"])
-            if image not in have:
-                raise SystemExit(
-                    f"QEMU image {image!r} is not on the GNS3 server.\n"
-                    f"Copy it to ~/GNS3/images/QEMU/ or set {t['image_env']}= in .env "
-                    f"to the file name you have. Images found: {found or 'none'}"
-                )
+        if t["type"] not in ("qemu", "dynamips"):
+            continue
+        image = env.get(t["image_env"], t["image_default"])
+        have = {i["filename"] for i in api.call("GET", f"/computes/local/{t['type']}/images")}
+        if image not in have:
+            folder = "IOS" if t["type"] == "dynamips" else "QEMU"
+            found = sorted(f for f in have if not f.startswith(("empty", "OVMF", "config")))
+            raise SystemExit(
+                f"{t['type']} image {image!r} is not on the GNS3 server.\n"
+                f"Copy it to ~/GNS3/images/{folder}/ or set {t['image_env']}= in .env "
+                f"to the file name you have. Images found: {found or 'none'}"
+            )
 
     print("Templates:")
     templates = ensure_templates(api, topo["templates"], env)
@@ -257,7 +319,15 @@ def main() -> None:
             node = api.call("PUT", f"/projects/{pid}/nodes/{node['node_id']}", {"name": name})
         nodes[name] = node
 
-        if name in rendered:
+        if name in rendered and node["node_type"] == "dynamips":
+            # Loaded into the router's NVRAM by GNS3 every time the router starts.
+            cfg = f"configs/i{node['properties']['dynamips_id']}_startup-config.cfg"
+            api.call(
+                "POST",
+                f"/projects/{pid}/nodes/{node['node_id']}/files/{cfg}",
+                raw=rendered[name].encode(),
+            )
+        elif name in rendered:
             if node["node_type"] == "qemu":
                 path, payload = "config.zip", ios_config_zip(rendered[name])
             else:
@@ -271,6 +341,8 @@ def main() -> None:
         ends = []
         for end in (a, b):
             name, port = end.split(maxsplit=1)
+            tpl = topo["templates"].get(topo["nodes"][name].get("template"), {})
+            port = tpl.get("ports", {}).get(port, port)  # logical -> real interface name
             adapter, port_no = find_port(nodes[name], port)
             ends.append(
                 {
@@ -283,11 +355,12 @@ def main() -> None:
         print(f"  {a:<16} <-> {b}")
 
     if args.start:
-        print("Starting all nodes (IOSv needs 2-4 minutes to boot)...")
-        api.call("POST", f"/projects/{pid}/nodes/start", {})
+        print("Starting all nodes...")
+        api.call("POST", f"/projects/{pid}/nodes/start", {}, timeout=300)
+        set_idlepc(api, pid, nodes, templates)
 
     print(f"\nDone. Open project {project_name!r} in the GNS3 GUI.")
-    print("Then from the host:  ssh netwarden@10.99.0.11   (after the routers have booted)")
+    print("Then from the host:  ssh netwarden@10.99.0.11   (give the routers 1-3 minutes)")
 
 
 if __name__ == "__main__":

@@ -27,9 +27,4 @@ devices:
     username: netwarden
     password_env: LAB_DEVICE_PASSWORD
     timeout_s: 20
-  SW1:
-    host: 10.99.0.21
-    platform: cisco_ios        # IOSvL2
-    username: netwarden
-    password_env: LAB_DEVICE_PASSWORD
-    timeout_s: 20
+  # SW1 is GNS3's built-in switch for now (no IOS switch image), so it is not managed.

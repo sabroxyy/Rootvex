@@ -17,11 +17,13 @@ lsmod() { cat /proc/modules 2>/dev/null; }   # same first column as lsmod, never
 have ip || ip() { :; }
 mask() { sed -E 's/((password|secret|token)[^=:]*[=:][[:space:]]*"?)[^",]+/\1***/I'; }
 
+PLATFORM=c7200
+LAB_C7200=c7200-advipservicesk9-mz.152-4.S5.image
 LAB_IOSV=vios-adventerprisek9-m.spa.159-3.m9.qcow2
-LAB_IOSVL2=vios_l2-adventerprisek9-m.ssa.high_iron_20200929.qcow2
 if [ -f .env ]; then
-  v=$(grep -E '^LAB_IOSV_IMAGE=' .env | cut -d= -f2-);   [ -n "$v" ] && LAB_IOSV=$v
-  v=$(grep -E '^LAB_IOSVL2_IMAGE=' .env | cut -d= -f2-); [ -n "$v" ] && LAB_IOSVL2=$v
+  v=$(grep -E '^LAB_ROUTER_PLATFORM=' .env | cut -d= -f2-); [ -n "$v" ] && PLATFORM=$v
+  v=$(grep -E '^LAB_C7200_IMAGE=' .env | cut -d= -f2-);     [ -n "$v" ] && LAB_C7200=$v
+  v=$(grep -E '^LAB_IOSV_IMAGE=' .env | cut -d= -f2-);      [ -n "$v" ] && LAB_IOSV=$v
 fi
 
 section "Host"
@@ -162,11 +164,12 @@ for d in "${imgs:-}" "$HOME/GNS3/images"; do
 done
 if [ -n "${imgdir:-}" ]; then
   ok "Images folder: $imgdir"
-  ls -la "$imgdir/QEMU" 2>/dev/null | grep -viE 'empty|OVMF|^total' | sed 's/^/      /'
-  for f in "$LAB_IOSV" "$LAB_IOSVL2"; do
-    if [ -f "$imgdir/QEMU/$f" ]; then ok "image $f present ($(du -h "$imgdir/QEMU/$f" | cut -f1))"
-    else fail "image $f missing in $imgdir/QEMU (or set LAB_IOSV_IMAGE / LAB_IOSVL2_IMAGE in .env)"; fi
-  done
+  info "Router platform: $PLATFORM"
+  if [ "$PLATFORM" = "iosv" ]; then sub=QEMU; f=$LAB_IOSV; var=LAB_IOSV_IMAGE
+  else sub=IOS; f=$LAB_C7200; var=LAB_C7200_IMAGE; fi
+  ls -la "$imgdir/$sub" 2>/dev/null | grep -viE 'empty|OVMF|^total|md5sum' | sed 's/^/      /'
+  if [ -f "$imgdir/$sub/$f" ]; then ok "router image $f present ($(du -h "$imgdir/$sub/$f" | cut -f1))"
+  else fail "router image $f missing in $imgdir/$sub (copy it there, or set $var in .env)"; fi
 else fail "No GNS3 images folder found"; fi
 
 section "Management network for the agent (tap-nw)"
