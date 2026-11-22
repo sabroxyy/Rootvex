@@ -1,29 +1,43 @@
 # Rootvex GNS3 lab - Stage B (docs/DESIGN.md section 9).
 # Single source of truth for lab/build_gns3_lab.py.
 #
-# Ports are written the way the device names them. The build script maps them
-# to GNS3 adapter/port numbers.
+# Routers are written once with logical ports (mgmt, if1, if2, if3). The router
+# platform below decides the real interface names, so the same configs run on a
+# Cisco 7200 (Dynamips) today and on IOSv later. Override with LAB_ROUTER_PLATFORM.
 
 project: netwarden-lab
+router_platform: c7200       # c7200 | iosv           (LAB_ROUTER_PLATFORM)
+switch_platform: builtin     # builtin | iosvl2       (LAB_SWITCH_PLATFORM)
+builtin_switch_ports: {p1: "1", p2: "2"}
 
 templates:
+  c7200:
+    name: NetWarden c7200
+    type: dynamips
+    image_env: LAB_C7200_IMAGE        # file name in ~/GNS3/images/IOS
+    image_default: c7200-advipservicesk9-mz.152-4.S5.image
+    ram: 512
+    slots: {slot0: C7200-IO-FE, slot1: PA-GE, slot2: PA-GE, slot3: PA-GE}
+    ports: {mgmt: FastEthernet0/0, if1: GigabitEthernet1/0, if2: GigabitEthernet2/0, if3: GigabitEthernet3/0}
   iosv:
     name: NetWarden IOSv
     type: qemu
-    image_env: LAB_IOSV_IMAGE        # file name in ~/GNS3/images/QEMU
+    image_env: LAB_IOSV_IMAGE         # file name in ~/GNS3/images/QEMU
     image_default: vios-adventerprisek9-m.spa.159-3.m9.qcow2
     ram: 512
     adapters: 4
     port_name_format: "Gi0/{0}"
+    ports: {mgmt: GigabitEthernet0/0, if1: GigabitEthernet0/1, if2: GigabitEthernet0/2, if3: GigabitEthernet0/3}
   iosvl2:
     name: NetWarden IOSvL2
     type: qemu
-    image_env: LAB_IOSVL2_IMAGE
+    image_env: LAB_IOSVL2_IMAGE       # file name in ~/GNS3/images/QEMU
     image_default: vios_l2-adventerprisek9-m.ssa.high_iron_20200929.qcow2
     ram: 768
     adapters: 16
     port_name_format: "Gi{1}/{0}"
     port_segment_size: 4
+    ports: {mgmt: GigabitEthernet0/0, p1: GigabitEthernet1/0, p2: GigabitEthernet0/1}
   ipterm:
     name: NetWarden ipterm
     type: docker
@@ -33,13 +47,14 @@ templates:
     type: docker
     image: nginx:alpine
 
-# x/y = position on the GNS3 canvas
+# template "router" = the router_platform above. x/y = position on the GNS3 canvas.
 nodes:
-  R1:      {template: iosv,   x: -250, y: -100, config: configs/R1.cfg}
-  R2:      {template: iosv,   x: -50,  y: -100, config: configs/R2.cfg}
-  ISP1:    {template: iosv,   x: 200,  y: -100, config: configs/ISP1.cfg}
-  BR1:     {template: iosv,   x: 450,  y: -100, config: configs/BR1.cfg}
-  SW1:     {template: iosvl2, x: -450, y: -100, config: configs/SW1.cfg}
+  R1:      {template: router, x: -250, y: -100, config: configs/R1.cfg}
+  R2:      {template: router, x: -50,  y: -100, config: configs/R2.cfg}
+  ISP1:    {template: router, x: 200,  y: -100, config: configs/ISP1.cfg}
+  BR1:     {template: router, x: 450,  y: -100, config: configs/BR1.cfg}
+  # template "switch" = switch_platform: IOSvL2 (managed) or GNS3's built-in switch.
+  SW1:     {template: switch, x: -450, y: -100, config: configs/SW1.cfg}
   PC1:     {template: ipterm, x: -650, y: -100, network: hosts/PC1.interfaces}
   PC2:     {template: ipterm, x: 650,  y: -100, network: hosts/PC2.interfaces}
   WEB1:    {template: nginx,  x: 200,  y: 80,   network: hosts/WEB1.interfaces}
@@ -48,18 +63,18 @@ nodes:
 
 links:
   # Data plane
-  - [PC1 eth0, SW1 Gi1/0]
-  - [SW1 Gi0/1, R1 Gi0/2]
-  - [R1 Gi0/1, R2 Gi0/1]
-  - [R2 Gi0/2, ISP1 Gi0/1]
-  - [ISP1 Gi0/2, BR1 Gi0/1]
-  - [ISP1 Gi0/3, WEB1 eth0]
-  - [BR1 Gi0/2, PC2 eth0]
+  - [PC1 eth0, SW1 p1]
+  - [SW1 p2, R1 if2]
+  - [R1 if1, R2 if1]
+  - [R2 if2, ISP1 if1]
+  - [ISP1 if2, BR1 if1]
+  - [ISP1 if3, WEB1 eth0]
+  - [BR1 if2, PC2 eth0]
   # Management plane (VRF MGMT, 10.99.0.0/24)
   - [MGMT-CLOUD tap-nw, MGMT-SW 0]
-  - [R1 Gi0/0, MGMT-SW 1]
-  - [R2 Gi0/0, MGMT-SW 2]
-  - [BR1 Gi0/0, MGMT-SW 3]
-  - [ISP1 Gi0/0, MGMT-SW 4]
-  - [SW1 Gi0/0, MGMT-SW 5]
+  - [R1 mgmt, MGMT-SW 1]
+  - [R2 mgmt, MGMT-SW 2]
+  - [BR1 mgmt, MGMT-SW 3]
+  - [ISP1 mgmt, MGMT-SW 4]
+  - [SW1 mgmt, MGMT-SW 5]       # only with IOSvL2; skipped for the built-in switch
   # MGMT-SW 6 is kept for FW1 (stage C)

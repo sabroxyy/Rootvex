@@ -101,6 +101,13 @@ def ask(
     try:
         with console.status(f"Troubleshooting with {s.llm.model}..."):
             state = run_agent(question, build_llm(s.llm), tools, s.agent, names)
+    except openai.APITimeoutError:  # subclass of APIConnectionError, so it must come first
+        console.print(
+            f"[red]The model did not answer within {s.llm.request_timeout_s}s.[/red] "
+            "Thinking models and first loads are slow; raise NETWARDEN_LLM__REQUEST_TIMEOUT_S "
+            "(e.g. 600) or try a smaller model."
+        )
+        raise typer.Exit(2) from None
     except openai.APIConnectionError:
         console.print(
             f"[red]Cannot reach the model server at {s.llm.base_url}.[/red] "

@@ -28,7 +28,12 @@ class LLMSettings(BaseModel):
     model: str = "granite4:3b"
     api_key: SecretStr = SecretStr("ollama")  # Ollama ignores it; the client needs a value
     temperature: float = 0.0
-    request_timeout_s: int = 120
+    request_timeout_s: int = 300
+    # Cap on tokens per model call, so a "thinking" model cannot ramble for minutes.
+    max_tokens: int | None = 2048
+    # For reasoning models (qwen3.5, gpt-oss): "none", "low", "medium", "high".
+    # None = don't send it (the model's default).
+    reasoning_effort: str | None = None
 
 
 class AgentSettings(BaseModel):

@@ -105,3 +105,19 @@ def test_agent_diagnoses_ospf_area_mismatch_end_to_end(setup):
     assert state["steps"] == 2
     assert all(e.verified for e in state["report"].evidence)
     assert "area" in state["report"].likely_cause
+
+
+@pytest.mark.parametrize(
+    "device,command,expect,absent",
+    [
+        ("R2", "show ip ospf interface GigabitEthernet0/1", "Area 1", None),
+        ("R1", "show ip ospf interface gigabitethernet0/1", "10.0.12.1/30, Area 0", "10.10.10.1"),
+        ("R1", "show running-config interface GigabitEthernet0/1", "10.0.12.1", "router ospf"),
+    ],
+)
+def test_interface_specific_commands_use_the_full_recording(setup, device, command, expect, absent):
+    tools, _ = setup
+    out = tools["run_show_command"].invoke({"device": device, "command": command})
+    assert expect in out, out
+    if absent:
+        assert absent not in out

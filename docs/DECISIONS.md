@@ -30,7 +30,8 @@ Notes:
 
 | VRAM | Model to try | Notes |
 |---|---|---|
-| 6 GB (now) | `granite4:3b` | Fits fully on GPU |
+| 6 GB (now) | `granite4:3b` | **In use.** 100% GPU, 42 tok/s, solved the OSPF test (Nov 22) |
+| 6 GB (now) | `qwen3.5:4b` | Fits, but "thinks" 3,000+ tokens per step (~29 tok/s); too slow for the agent loop |
 | 6 GB (now) | `qwen3.5:9b` | ~6.6 GB, partly on CPU, slower |
 | 12 GB | `qwen3.5:9b` | Fits comfortably |
 | 16 GB | `gpt-oss:20b` | Native function calling |
@@ -50,6 +51,13 @@ Notes:
 
 Plan: build daily on the local PC; rent ~20 GPU hours/month for big models
 and fine-tuning (~EGP 465/month on L4 Spot at $1 = EGP 55).
+
+## Lab router images (updated Nov 22)
+
+- `c7200-advipservicesk9-mz.152-4.S5` does **not** boot on Dynamips 0.2.25 (TLB exception).
+- Chosen: **IOSv + IOSvL2 from CML-Personal** (`vios-adventerprisek9-m.spa.159-3.m9`,
+  `vios_l2-adventerprisek9-m.ssa.high_iron_20200929`).
+- IOL L3 15.7 needs an IOU licence; FortiGate 7.0.5 is for Stage C (use the KVM build).
 
 ## Software stack
 

@@ -27,3 +27,12 @@ logs/
 dist/
 gns3-check.txt
 *_log.txt
+gpu-check.txt
+
+# Dynamips / GNS3 run files (never commit)
+c7200_*
+*_nvram
+*_rom
+*_disk*
+dynamips_*_stdout.txt
+ilt_*

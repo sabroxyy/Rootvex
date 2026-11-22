@@ -21,3 +21,13 @@ def test_env_overrides_yaml(monkeypatch):
 def test_api_key_is_secret():
     s = load_settings()
     assert "ollama" not in repr(s.llm)
+
+
+def test_llm_limits_reach_the_client(monkeypatch):
+    from netwarden.llm import build_llm
+
+    monkeypatch.setenv("NETWARDEN_LLM__REASONING_EFFORT", "none")
+    s = load_settings()
+    llm = build_llm(s.llm)
+    assert llm.max_tokens == 2048
+    assert llm.reasoning_effort == "none"

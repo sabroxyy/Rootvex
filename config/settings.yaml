@@ -5,7 +5,9 @@ llm:
   base_url: http://localhost:11434/v1   # Ollama; vLLM/llama.cpp serve the same API
   model: granite4:3b
   temperature: 0.0
-  request_timeout_s: 120
+  request_timeout_s: 300
+  max_tokens: 2048          # per model call; stops "thinking" models rambling
+  reasoning_effort: null    # reasoning models only: none | low | medium | high
 
 agent:
   max_steps: 12        # max tool calls per run
