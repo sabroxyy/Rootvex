@@ -8,7 +8,7 @@ running locally, lab-first.
 > is built and tested with recorded outputs and a real model on the GPU; its
 > live-lab checks wait for IOSv images (CML-Personal). Next: Phase 4 playbooks.
 > Full status and how-to: [`docs/MANUAL.md`](docs/MANUAL.md)
-> ([PDF v2](docs/Rootvex-Manual-v2.pdf)).
+> ([PDF](docs/Rootvex-Manual.pdf)).
 
 ## Quick start
 
@@ -76,10 +76,12 @@ Apache License 2.0 — see [`LICENSE`](LICENSE).
 
 | Document | PDF |
 |---|---|
-| [`docs/MANUAL.md`](docs/MANUAL.md) — status, how it works, workstation and lab, every phase, problems solved | [v2](docs/Rootvex-Manual-v2.pdf) · [v1](docs/Rootvex-Manual.pdf) |
-| [`docs/DESIGN.md`](docs/DESIGN.md) — Phase 0 design + section 11: status and changes | [v2](docs/Rootvex-Design-v2.pdf) · [v1](docs/PHASE0_DESIGN.pdf) |
-| [`docs/SETUP_LOG.md`](docs/SETUP_LOG.md) — workstation setup, GPU, Ollama, GNS3, incidents | [v2](docs/Rootvex-SetupLog-v2.pdf) |
-| [`docs/DECISIONS.md`](docs/DECISIONS.md) — hardware, models, cloud, tooling decisions | — |
+| [`docs/MANUAL.md`](docs/MANUAL.md) — status, how it works, workstation and lab, every phase, problems solved | [Rootvex-Manual.pdf](docs/Rootvex-Manual.pdf) |
+| [`docs/DESIGN.md`](docs/DESIGN.md) — Phase 0 design + section 11: status and changes | [Rootvex-Design.pdf](docs/Rootvex-Design.pdf) |
+| [`docs/SETUP_LOG.md`](docs/SETUP_LOG.md) — workstation setup, GPU, Ollama, GNS3, incidents | [Rootvex-SetupLog.pdf](docs/Rootvex-SetupLog.pdf) |
+| [`docs/DECISIONS.md`](docs/DECISIONS.md) — hardware, models, cloud, tooling decisions, the rename | — |
 | [`docs/PROJECT_PROMPT.md`](docs/PROJECT_PROMPT.md) — build brief for Claude Code | — |
 | [`lab/README.md`](lab/README.md) — GNS3 lab as code | — |
 | [`docs/lab-topology-3d.html`](docs/lab-topology-3d.html) — interactive 3D view of the lab | — |
+
+PDFs are generated from the Markdown: `uv run scripts/build_pdfs.py`.

@@ -125,6 +125,8 @@ mtools, Docker without sudo, GNS3 VM disabled, server on 127.0.0.1:3080 with aut
 - [x] Install Ollama; `ollama run granite4:3b`; check `ollama ps` shows GPU
 - [x] GNS3 environment healthy (`lab/check_gns3_env.sh`)
 - [x] Management interface `tap-nw`
+- [ ] Copy `.env` and `config/inventory.local.yaml` from `~/netwarden` to `~/projects/rootvex`
+      (rename `NETWARDEN_*` to `ROOTVEX_*`; `LAB_*` unchanged), then retire `~/netwarden`
 - [ ] **IOSv + IOSvL2 images from CML-Personal** → `~/GNS3/images/QEMU/`
 - [ ] Build the lab: `uv run python lab/build_gns3_lab.py --rebuild --start`
 - [ ] SSH to R1 (10.99.0.11) from the host; finish Phase 3 live-lab checks

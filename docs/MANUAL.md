@@ -1,6 +1,6 @@
 # Rootvex Manual
 
-**Version 2 — status as of 22 November 2026**
+**Version 2 — status as of 22 November 2026.** Rootvex was called NetWarden until 22 November 2026.
 
 A step-by-step guide to building, running, and growing Rootvex: a
 self-hosted AI agent that helps network and security engineers troubleshoot
@@ -83,9 +83,9 @@ Cisco Modeling Labs – Personal (CML-Personal)**. The build already supports it
 
 | Item | Value |
 |---|---|
-| Repository | `github.com/sabroxyy/Rootvex` (private) |
-| Working branch | `claude/friendly-heisenberg-b8656r` (no pull request yet) |
-| Local folder | `~/netwarden` on the workstation |
+| Repository | `github.com/sabroxyy/Rootvex` (private; the old NetWarden URL redirects) |
+| Branch | `main` (feature work on short-lived branches, merged after review) |
+| Local folder | `~/projects/rootvex` on the workstation |
 
 ---
 
@@ -173,7 +173,7 @@ Full history: [`SETUP_LOG.md`](SETUP_LOG.md).
 
 ### Health checks
 
-Run from `~/netwarden`. Both are read-only and need no sudo.
+Run from `~/projects/rootvex`. Both are read-only and need no sudo.
 
 ```bash
 bash lab/check_gpu.sh            # driver, temps, Xid errors, Ollama sees the GPU
@@ -292,7 +292,7 @@ dependency versions, GNS3 lab design (topology, addressing, faults).
 | Router images | IOSv + IOSvL2 from CML-Personal (c7200 tried and failed) |
 | Default model | `granite4:3b`: correct on the OSPF test; `qwen3.5:4b` too slow ("thinking") |
 | Vector store | LanceDB (to confirm in Phase 5) |
-| Git flow | Work on branch `claude/friendly-heisenberg-b8656r`; one commit per logical step |
+| Git flow | Small commits on a branch, merged into `main` after review |
 
 ---
 
@@ -518,10 +518,18 @@ with `ROOTVEX_<SECTION>__<KEY>`:
 | Disk suddenly full | `du -xsh ~/GNS3/projects/*`; delete `dynamips_i*_stdout.txt` / `c7200_i*_log.txt` with routers stopped |
 | GPU missing after an update | `bash lab/check_gpu.sh`; Pascal stays on driver branch 580 |
 
+### Rebuilding the PDFs
+
+The Markdown in `docs/` is the source; the PDFs are generated from it:
+
+```bash
+uv run scripts/build_pdfs.py
+```
+
 ### Updating safely
 
 ```bash
-git pull origin claude/friendly-heisenberg-b8656r
+git pull origin main
 ```
 
 ```bash

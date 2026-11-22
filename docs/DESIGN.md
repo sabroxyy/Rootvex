@@ -1,6 +1,6 @@
 # Rootvex design (Phase 0)
 
-**Version 2 — 22 November 2026.** Phase 0 is approved and Phases 1–2 are built;
+**Version 2 — 22 November 2026** (renamed from NetWarden the same day). Phase 0 is approved and Phases 1–2 are built;
 Phase 3 code is built and waits for IOSv images to finish its live-lab checks.
 Sections 1–10 are the original Phase 0 design, kept as the record of what was
 agreed. **Section 11 lists what changed during the build and answers the open
@@ -381,7 +381,7 @@ internet or the home LAN.
 | 1 | GNS3 images | Only `c7200-advipservicesk9-mz.152-4.S5` was available; it crashes on Dynamips 0.2.25 (TLB exception at power-on, every setting tried). **Decision: IOSv + IOSvL2 from CML-Personal.** IOL needs an IOU licence; the FortiGate VM is kept for Stage C (needs the KVM build) |
 | 2 | Default model | **`granite4:3b`**. On the GTX 1060: 100% GPU, 42 tokens/s; found the OSPF area-mismatch test fault. `qwen3.5:4b` spends 3,000+ tokens "thinking" per step (~29 tok/s) and timed out |
 | 3 | Vector store | LanceDB, to confirm when Phase 5 starts |
-| 4 | Git flow | Work on branch `claude/friendly-heisenberg-b8656r`, one commit per logical step; PR to `main` when Phase 3 is signed off |
+| 4 | Git flow | Small commits on a branch, merged into `main` after review. The project was renamed **NetWarden → Rootvex** on 22 Nov 2026 (package, CLI, `ROOTVEX_*` variables; lab device login and GNS3 names unchanged) |
 
 ### 11.2 Differences from the plan
 
