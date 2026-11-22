@@ -63,15 +63,15 @@ def new_run_id() -> str:
 
 
 def setup_logging(log_dir: Path, level: str = "INFO", console: bool = False) -> Path:
-    """Send structlog JSON lines to logs/netwarden-YYYYMMDD.jsonl. Returns the file path."""
+    """Send structlog JSON lines to logs/rootvex-YYYYMMDD.jsonl. Returns the file path."""
     log_dir.mkdir(parents=True, exist_ok=True)
-    log_file = log_dir / f"netwarden-{datetime.now(UTC):%Y%m%d}.jsonl"
+    log_file = log_dir / f"rootvex-{datetime.now(UTC):%Y%m%d}.jsonl"
 
     handlers: list[logging.Handler] = [logging.FileHandler(log_file, encoding="utf-8")]
-    if console or os.environ.get("NETWARDEN_LOG_CONSOLE"):
+    if console or os.environ.get("ROOTVEX_LOG_CONSOLE"):
         handlers.append(logging.StreamHandler(sys.stderr))
 
-    root = logging.getLogger("netwarden")
+    root = logging.getLogger("rootvex")
     root.handlers.clear()
     for h in handlers:
         h.setFormatter(logging.Formatter("%(message)s"))
@@ -94,5 +94,5 @@ def setup_logging(log_dir: Path, level: str = "INFO", console: bool = False) -> 
     return log_file
 
 
-def get_logger(name: str = "netwarden"):
+def get_logger(name: str = "rootvex"):
     return structlog.get_logger(name)

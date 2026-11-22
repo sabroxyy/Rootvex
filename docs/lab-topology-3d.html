@@ -1,4 +1,4 @@
-<title>NetWarden Lab Topology</title>
+<title>Rootvex Lab Topology</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@500;600&family=IBM+Plex+Sans:wght@400;500&display=swap">
@@ -124,11 +124,11 @@
   }
 </style>
 
-<canvas id="scene" aria-label="3D view of the NetWarden GNS3 lab topology"></canvas>
+<canvas id="scene" aria-label="3D view of the Rootvex GNS3 lab topology"></canvas>
 <div id="labels"></div>
 
 <header>
-  <h1>NetWarden Lab Topology</h1>
+  <h1>Rootvex Lab Topology</h1>
   <div class="sub">GNS3 on Ubuntu · data plane above, out-of-band management (VRF MGMT) below · drag to orbit, scroll to zoom</div>
 </header>
 
@@ -185,9 +185,9 @@
             faults: ['Policy / NAT faults (Fortinet playbooks, later)'] },
     'MGMT-SW': { pos: [1.5, MGMT_Y, 11], kind: 'mswitch', zone: 'MGMT', role: 'GNS3 built-in Ethernet switch · management only',
             iface: [['LAN', '10.99.0.0/24']], ram: '0', faults: [] },
-    HOST: { pos: [-8, MGMT_Y, 11], kind: 'host', zone: 'MGMT', label: 'Ubuntu host', role: 'Dell Precision 7810 · runs NetWarden + Ollama',
+    HOST: { pos: [-8, MGMT_Y, 11], kind: 'host', zone: 'MGMT', label: 'Ubuntu host', role: 'Dell Precision 7810 · runs Rootvex + Ollama',
             iface: [['tap-nw', '10.99.0.1/24 (GNS3 Cloud node)']], ram: '15 GiB total',
-            faults: [], note: 'NetWarden reaches devices only here, over SSH, with allowlisted read-only commands. No route to the internet or the home LAN (192.168.1.0/24).' },
+            faults: [], note: 'Rootvex reaches devices only here, over SSH, with allowlisted read-only commands. No route to the internet or the home LAN (192.168.1.0/24).' },
   };
   const mgmtOf = ['SW1', 'R1', 'R2', 'ISP1', 'BR1'];
 

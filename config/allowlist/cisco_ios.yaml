@@ -1,4 +1,4 @@
-# Read-only commands NetWarden may run on Cisco IOS / IOS-XE. Deny by default.
+# Read-only commands Rootvex may run on Cisco IOS / IOS-XE. Deny by default.
 # Each entry is a regex matched against the WHOLE normalized command
 # (lower-case, single spaces). Abbreviations like "sh run" are NOT accepted.
 # One output filter is allowed after the command: | include|exclude|begin|section|count <text>

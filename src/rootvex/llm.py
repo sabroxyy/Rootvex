@@ -9,7 +9,7 @@ from __future__ import annotations
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_openai import ChatOpenAI
 
-from netwarden.config import LLMSettings
+from rootvex.config import LLMSettings
 
 
 def build_llm(cfg: LLMSettings) -> BaseChatModel:

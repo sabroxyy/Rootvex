@@ -1,4 +1,4 @@
-"""Build the NetWarden GNS3 lab (Stage B) through the GNS3 server REST API.
+"""Build the Rootvex GNS3 lab (Stage B) through the GNS3 server REST API.
 
 Reads lab/topology.yaml, creates the templates if missing, creates the project,
 nodes and links, and loads every device's startup config:

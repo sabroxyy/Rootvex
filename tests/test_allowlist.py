@@ -1,7 +1,7 @@
 import pytest
 
-from netwarden.config import PROJECT_ROOT
-from netwarden.devices.allowlist import Allowlist
+from rootvex.config import PROJECT_ROOT
+from rootvex.devices.allowlist import Allowlist
 
 
 @pytest.fixture(scope="module")

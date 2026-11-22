@@ -7,8 +7,8 @@ import re
 from pathlib import Path
 from typing import Protocol
 
-from netwarden.devices.inventory import Device
-from netwarden.log import register_secret
+from rootvex.devices.inventory import Device
+from rootvex.log import register_secret
 
 
 class DeviceError(RuntimeError):

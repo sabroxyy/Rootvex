@@ -21,15 +21,15 @@ from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, Tool
 from langchain_core.tools import BaseTool
 from langgraph.graph import END, START, StateGraph
 
-from netwarden.agent import prompts
-from netwarden.agent.report import parse_report
-from netwarden.agent.state import AgentState
-from netwarden.config import AgentSettings
-from netwarden.log import get_logger, new_run_id
+from rootvex.agent import prompts
+from rootvex.agent.report import parse_report
+from rootvex.agent.state import AgentState
+from rootvex.config import AgentSettings
+from rootvex.log import get_logger, new_run_id
 
 _OUTPUT_TAG = re.compile(r'<untrusted_device_output device="([^"]*)" command="([^"]*)">')
 
-log = get_logger("netwarden.agent")
+log = get_logger("rootvex.agent")
 
 
 def _norm(s: str) -> str:

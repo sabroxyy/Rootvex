@@ -1,6 +1,6 @@
 from typer.testing import CliRunner
 
-from netwarden.cli import app
+from rootvex.cli import app
 
 runner = CliRunner()
 

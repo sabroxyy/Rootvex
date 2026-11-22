@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Read-only health check of GNS3, the GNS3 VM and everything the NetWarden lab needs.
+# Read-only health check of GNS3, the GNS3 VM and everything the Rootvex lab needs.
 # Changes nothing, needs no sudo. Passwords in config files are masked.
 #
 #   bash lab/check_gns3_env.sh | tee gns3-check.txt
@@ -156,7 +156,7 @@ if have curl; then
   else info "Local GNS3 API on 127.0.0.1:3080 did not answer (fine if the GUI is closed; 401 means auth on)"; fi
 fi
 
-section "Images for the NetWarden lab"
+section "Images for the Rootvex lab"
 for d in "${imgs:-}" "$HOME/GNS3/images"; do
   [ -n "$d" ] && [ -d "$d" ] && { imgdir="$d"; break; }
 done

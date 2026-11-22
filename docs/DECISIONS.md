@@ -63,6 +63,11 @@ and fine-tuning (~EGP 465/month on L4 Spot at $1 = EGP 55).
 Chosen: **NetWarden**. Alternatives considered: RootCause, ShowRun, Triage,
 NOCmate, Fixpoint, PacketSage, Netfix Agent.
 
+Renamed to **Rootvex** on 2026-11-22: Python package `rootvex`, CLI `rootvex`,
+environment variables `ROOTVEX_*`. Lab device usernames (`netwarden`) and the
+GNS3 project and template names (`netwarden-lab`, `NetWarden IOSv`, ...) are
+kept so the existing lab and its configs keep working.
+
 ## Sources
 
 - https://localairun.pages.dev/local-llm-tools

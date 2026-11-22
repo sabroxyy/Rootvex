@@ -1,4 +1,4 @@
-from netwarden.tools.sanitize import wrap_untrusted
+from rootvex.tools.sanitize import wrap_untrusted
 
 
 def test_wrap_strips_control_chars_and_truncates():

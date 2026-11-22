@@ -1,11 +1,11 @@
 # Build brief for Claude Code
 
 Paste the section below as the first message to Claude Code, started inside
-the `netwarden` repository.
+the `rootvex` repository.
 
 ---
 
-## Project: NetWarden — open-source AI agent for network & security engineers
+## Project: Rootvex — open-source AI agent for network & security engineers
 
 ### Who I am
 I'm a senior network and security engineer (Cisco, Fortinet, Palo Alto, F5).
@@ -18,7 +18,7 @@ well-commented, and easy to explain.
 - Ubuntu 26.04 LTS on a Dell Precision 7810 workstation
 - GPU: NVIDIA GTX 1060 6 GB, driver 580 (Pascal — check CUDA/tool compatibility)
 - Docker installed; Ollama installed (or install it); GNS3 installed for labs
-- Git + gh CLI logged in as github.com/sabroxyy; repo: `netwarden` (private)
+- Git + gh CLI logged in as github.com/sabroxyy; repo: `rootvex` (private)
 
 Before writing code, run commands to confirm RAM, disk, GPU (`nvidia-smi`),
 Python, Docker, and Ollama versions, and report what you find.
@@ -76,7 +76,7 @@ Python, Docker, and Ollama versions, and report what you find.
 
 ### How to work with me
 - Explain what you'll do before big changes; keep commits small and
-  descriptive, one per logical step; push to the `netwarden` repo.
+  descriptive, one per logical step; push to the `rootvex` repo.
 - Prefer simple, readable code over clever abstractions.
 - When unsure about my lab, devices, or preferences, ask instead of guessing.
 - At the end of each phase: summarize what was built, how to run it,

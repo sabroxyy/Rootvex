@@ -7,13 +7,13 @@ import time
 
 from langchain_core.tools import StructuredTool
 
-from netwarden.devices.allowlist import Allowlist
-from netwarden.devices.connection import DeviceError, Runner
-from netwarden.devices.inventory import Inventory, InventoryError
-from netwarden.log import get_logger, redact_text
-from netwarden.tools.sanitize import wrap_untrusted
+from rootvex.devices.allowlist import Allowlist
+from rootvex.devices.connection import DeviceError, Runner
+from rootvex.devices.inventory import Inventory, InventoryError
+from rootvex.log import get_logger, redact_text
+from rootvex.tools.sanitize import wrap_untrusted
 
-log = get_logger("netwarden.devices")
+log = get_logger("rootvex.devices")
 
 
 def _apply_filter(output: str, command: str) -> str:

@@ -1,4 +1,4 @@
-# NetWarden lab (GNS3)
+# Rootvex lab (GNS3)
 
 Stage B of the lab in [`docs/DESIGN.md`](../docs/DESIGN.md) section 9, as code.
 Interactive picture: [`docs/lab-topology-3d.html`](../docs/lab-topology-3d.html).
@@ -81,14 +81,14 @@ On the routers:
 From PC1 (GNS3 console): `ping 10.20.20.10` goes over the tunnel, and
 `curl http://www.lab.test` returns the nginx page through NAT.
 
-Then point NetWarden at it:
+Then point Rootvex at it:
 
 ```bash
 cp config/inventory.example.yaml config/inventory.local.yaml   # all five lab devices
 ```
 
 ```bash
-uv run netwarden ask "Is OSPF healthy between R1 and R2?" --steps
+uv run rootvex ask "Is OSPF healthy between R1 and R2?" --steps
 ```
 
 ## Design notes
@@ -112,6 +112,6 @@ PNETLab (or EVE-NG) can run the same lab by hand:
    Cloud/pnet bridge for 10.99.0.0/24.
 3. Replace the double-brace secrets in `configs/*.cfg` with your values and paste
    each config into the node's console, or upload it as the node's startup config.
-4. Point NetWarden's inventory at the management IPs; nothing else changes.
+4. Point Rootvex's inventory at the management IPs; nothing else changes.
 
 The build script only targets the GNS3 API.

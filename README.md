@@ -1,4 +1,4 @@
-# NetWarden
+# Rootvex
 
 A self-hosted, open-source AI agent that helps network and security engineers
 troubleshoot and configure network and security devices — built from scratch,
@@ -22,18 +22,18 @@ cp config/inventory.example.yaml config/inventory.local.yaml
 ollama pull granite4:3b
 
 # 4. Use it
-uv run netwarden config                                # effective settings
-uv run netwarden devices                               # lab inventory
-uv run netwarden check R1 "show ip ospf neighbor"      # allowlist dry-run
-uv run netwarden ask "OSPF between R1 and R2 is down" --fixtures   # no lab needed
-uv run netwarden ask "OSPF between R1 and R2 is down"              # real GNS3 lab
+uv run rootvex config                                # effective settings
+uv run rootvex devices                               # lab inventory
+uv run rootvex check R1 "show ip ospf neighbor"      # allowlist dry-run
+uv run rootvex ask "OSPF between R1 and R2 is down" --fixtures   # no lab needed
+uv run rootvex ask "OSPF between R1 and R2 is down"              # real GNS3 lab
 
 # Tests and lint
 uv run pytest
 uv run ruff check .
 ```
 
-Audit logs go to `logs/netwarden-YYYYMMDD.jsonl` (secrets redacted).
+Audit logs go to `logs/rootvex-YYYYMMDD.jsonl` (secrets redacted).
 
 ## Goals
 

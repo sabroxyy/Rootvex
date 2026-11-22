@@ -7,7 +7,7 @@ from typing import Annotated, TypedDict
 from langchain_core.messages import AnyMessage
 from langgraph.graph.message import add_messages
 
-from netwarden.agent.report import Report
+from rootvex.agent.report import Report
 
 
 class AgentState(TypedDict, total=False):

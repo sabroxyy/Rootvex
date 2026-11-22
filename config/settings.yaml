@@ -1,5 +1,5 @@
-# NetWarden settings. Environment variables (NETWARDEN_*) override these.
-# Nested keys use a double underscore, e.g. NETWARDEN_LLM__MODEL.
+# Rootvex settings. Environment variables (ROOTVEX_*) override these.
+# Nested keys use a double underscore, e.g. ROOTVEX_LLM__MODEL.
 
 llm:
   base_url: http://localhost:11434/v1   # Ollama; vLLM/llama.cpp serve the same API

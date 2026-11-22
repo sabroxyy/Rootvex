@@ -4,12 +4,12 @@ import json
 import pytest
 from langchain_core.messages import AIMessage
 
-from netwarden.agent.graph import run_agent
-from netwarden.config import PROJECT_ROOT, AgentSettings
-from netwarden.devices.allowlist import Allowlist
-from netwarden.devices.connection import FixtureRunner
-from netwarden.devices.inventory import load_inventory
-from netwarden.tools.device_tools import make_device_tools
+from rootvex.agent.graph import run_agent
+from rootvex.config import PROJECT_ROOT, AgentSettings
+from rootvex.devices.allowlist import Allowlist
+from rootvex.devices.connection import FixtureRunner
+from rootvex.devices.inventory import load_inventory
+from rootvex.tools.device_tools import make_device_tools
 from tests.fake_llm import ScriptedChatModel, tool_call
 
 LAB = [ipaddress.IPv4Network("10.99.0.0/24")]

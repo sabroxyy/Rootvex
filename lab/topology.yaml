@@ -1,4 +1,4 @@
-# NetWarden GNS3 lab - Stage B (docs/DESIGN.md section 9).
+# Rootvex GNS3 lab - Stage B (docs/DESIGN.md section 9).
 # Single source of truth for lab/build_gns3_lab.py.
 #
 # Ports are written the way the device names them. The build script maps them

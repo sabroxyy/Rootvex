@@ -1,6 +1,6 @@
 """Load settings from config/settings.yaml, then let .env / environment override them.
 
-Precedence (highest first): explicit kwargs > environment (NETWARDEN_*) > .env > settings.yaml.
+Precedence (highest first): explicit kwargs > environment (ROOTVEX_*) > .env > settings.yaml.
 """
 
 from __future__ import annotations
@@ -18,9 +18,9 @@ from pydantic_settings import (
     YamlConfigSettingsSource,
 )
 
-# Repo root = two levels above src/netwarden. Override with NETWARDEN_HOME.
-PROJECT_ROOT = Path(os.environ.get("NETWARDEN_HOME", Path(__file__).resolve().parents[2]))
-SETTINGS_FILE = Path(os.environ.get("NETWARDEN_SETTINGS", PROJECT_ROOT / "config/settings.yaml"))
+# Repo root = two levels above src/rootvex. Override with ROOTVEX_HOME.
+PROJECT_ROOT = Path(os.environ.get("ROOTVEX_HOME", Path(__file__).resolve().parents[2]))
+SETTINGS_FILE = Path(os.environ.get("ROOTVEX_SETTINGS", PROJECT_ROOT / "config/settings.yaml"))
 
 
 class LLMSettings(BaseModel):
@@ -61,7 +61,7 @@ class LoggingSettings(BaseModel):
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
-        env_prefix="NETWARDEN_",
+        env_prefix="ROOTVEX_",
         env_nested_delimiter="__",
         env_file=PROJECT_ROOT / ".env",
         extra="ignore",

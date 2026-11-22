@@ -2,7 +2,7 @@ import json
 
 import structlog
 
-from netwarden import log
+from rootvex import log
 
 
 def test_log_lines_are_json_and_redacted(tmp_path):

@@ -1,6 +1,6 @@
 import ipaddress
 
-from netwarden.config import load_settings
+from rootvex.config import load_settings
 
 
 def test_defaults_come_from_settings_yaml():
@@ -11,8 +11,8 @@ def test_defaults_come_from_settings_yaml():
 
 
 def test_env_overrides_yaml(monkeypatch):
-    monkeypatch.setenv("NETWARDEN_LLM__MODEL", "qwen3.5:4b")
-    monkeypatch.setenv("NETWARDEN_AGENT__MAX_STEPS", "3")
+    monkeypatch.setenv("ROOTVEX_LLM__MODEL", "qwen3.5:4b")
+    monkeypatch.setenv("ROOTVEX_AGENT__MAX_STEPS", "3")
     s = load_settings()
     assert s.llm.model == "qwen3.5:4b"
     assert s.agent.max_steps == 3

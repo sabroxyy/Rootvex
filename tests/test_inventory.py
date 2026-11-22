@@ -2,8 +2,8 @@ import ipaddress
 
 import pytest
 
-from netwarden.config import PROJECT_ROOT
-from netwarden.devices.inventory import InventoryError, load_inventory
+from rootvex.config import PROJECT_ROOT
+from rootvex.devices.inventory import InventoryError, load_inventory
 
 LAB = [ipaddress.IPv4Network("10.99.0.0/24")]
 

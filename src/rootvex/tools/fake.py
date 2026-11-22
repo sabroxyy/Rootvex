@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from langchain_core.tools import StructuredTool
 
-from netwarden.tools.sanitize import wrap_untrusted
+from rootvex.tools.sanitize import wrap_untrusted
 
 _FAKE_STATUS = {
     "R1": """Interface              IP-Address      OK? Method Status                Protocol

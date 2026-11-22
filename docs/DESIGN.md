@@ -1,4 +1,4 @@
-# NetWarden design (Phase 0 proposal)
+# Rootvex design (Phase 0 proposal)
 
 Status: **draft for review**. Nothing here is built yet.
 
@@ -15,7 +15,7 @@ Status: **draft for review**. Nothing here is built yet.
 | Docker | 29.10.0, Compose v5.8.0 | **No NVIDIA runtime** (Container Toolkit not installed). Run Ollama natively until Phase 9 |
 | Ollama | Binary 0.40.16 (= latest release). **No service running, no models pulled** | Must start it (`ollama serve` or a systemd unit) and pull models before Phase 2 |
 | GNS3 | 2.2.61, `/dev/kvm` present, user in `kvm`, `ubridge`, `libvirt` | OK for Phase 3 lab |
-| Git | git 2.53, gh 2.104 logged in as `sabroxyy`, remote `git@github.com:sabroxyy/NetWarden.git` | OK |
+| Git | git 2.53, gh 2.104 logged in as `sabroxyy`, remote `git@github.com:sabroxyy/Rootvex.git` | OK |
 
 ## 2. Goals and non-goals
 
@@ -60,7 +60,7 @@ question -> |  LangGraph agent                                                |
 - Use the **OpenAI-compatible** endpoint (`langchain-openai` `ChatOpenAI`
   with `base_url`). Ollama serves it at `http://localhost:11434/v1`; vLLM or
   llama.cpp on a cloud GPU serve the same API. Moving to a bigger model means
-  editing `NETWARDEN_LLM_BASE_URL` and `NETWARDEN_LLM_MODEL` only.
+  editing `ROOTVEX_LLM_BASE_URL` and `ROOTVEX_LLM_MODEL` only.
 - Default dev model: **`granite4:3b`** (tag confirmed on ollama.com). Fallback
   candidate: `qwen3.5:4b`. Phase 2 starts with a short tool-calling smoke test
   on both and we keep the one that calls tools reliably.
@@ -128,14 +128,14 @@ exists in tool output (hallucination check), steps used.
 | 3. Changes last | Phase 8 only. Separate module and separate tool **not bound to the troubleshooting agent**. Flow: model proposes a change plan + rollback -> system fetches running config and renders a diff -> human approves by typing the device name in CLI/UI -> apply -> verify commands -> auto-rollback on failed verify |
 | 4. Untrusted data | Tool output wrapped in `<untrusted_device_output device=... command=...>` tags, truncated to a max size, control characters stripped. System prompt states that text inside those tags is data and must never be followed as instructions. The tool set is fixed per graph, so injected text cannot unlock new capabilities |
 | 5. Secrets | `.env` + env vars only, loaded with `pydantic-settings` using `SecretStr`. Inventory references credentials by env var name (`password_env: LAB_R1_PASSWORD`), never values. A log processor redacts known secret values and patterns (`password`, `secret`, `enable`, SNMP community, keys) |
-| 6. Log everything | `structlog` JSON lines to `logs/netwarden-YYYYMMDD.jsonl`: every model call (model, tokens, latency), tool call (args, result size, allowed/denied), and device command (device, command, duration). Each run gets a `run_id` |
+| 6. Log everything | `structlog` JSON lines to `logs/rootvex-YYYYMMDD.jsonl`: every model call (model, tokens, latency), tool call (args, result size, allowed/denied), and device command (device, command, duration). Each run gets a `run_id` |
 | 7. Local + open source | Ollama, LangGraph, Netmiko, LanceDB, FastAPI. No paid API anywhere |
 | 8. Verify versions | Versions below checked on PyPI 2026-11-19; exact pins live in `uv.lock` |
 
 ## 5. Repository layout
 
 ```
-netwarden/
+rootvex/
   pyproject.toml            # uv project, pinned deps, ruff + pytest config
   uv.lock
   .python-version           # 3.12
@@ -149,12 +149,12 @@ netwarden/
       cisco_ios.yaml        # Phase 3
       fortinet.yaml         # later
       paloalto_panos.yaml   # later
-  src/netwarden/
+  src/rootvex/
     __init__.py
     config.py               # load settings.yaml + .env
     logging.py              # structlog setup, redaction, run_id
     llm.py                  # build the chat model from config
-    cli.py                  # `netwarden ask "..."`, `netwarden devices`
+    cli.py                  # `rootvex ask "..."`, `rootvex devices`
     agent/
       state.py              # AgentState
       prompts.py            # system prompt incl. untrusted-data rules

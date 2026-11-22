@@ -1,6 +1,6 @@
-# NetWarden Manual
+# Rootvex Manual
 
-A step-by-step guide to building, running, and growing NetWarden — a
+A step-by-step guide to building, running, and growing Rootvex — a
 self-hosted AI agent for network and security engineers.
 
 - **Part 1** explains what the project is and how it works.
@@ -28,17 +28,17 @@ built; commands and file names may change as the code is written.
    - [Phase 7 — API and web UI](#phase-7--api-and-web-ui)
    - [Phase 8 — Approved configuration changes](#phase-8--approved-configuration-changes)
    - [Phase 9 — Packaging](#phase-9--packaging)
-4. [Part 4 — Using and operating NetWarden](#part-4--using-and-operating-netwarden)
+4. [Part 4 — Using and operating Rootvex](#part-4--using-and-operating-rootvex)
 5. [Glossary](#glossary)
 
 ---
 
 ## Part 1 — The project
 
-### What NetWarden does
+### What Rootvex does
 
 You describe a problem in plain language — *"OSPF neighbor between R1 and R2
-is down"* — and NetWarden:
+is down"* — and Rootvex:
 
 1. **Understands** the issue and picks a troubleshooting approach.
 2. **Plans** which checks to run.
@@ -184,7 +184,7 @@ protects you on the device.
 ### Start Claude Code
 
 ```bash
-cd ~/projects/netwarden
+cd ~/projects/rootvex
 claude
 ```
 
@@ -241,14 +241,14 @@ time to change your mind.
 **Suggested repo structure** (Claude Code may propose changes — judge them)
 
 ```
-netwarden/
+rootvex/
 ├── pyproject.toml            # dependencies, managed with uv
 ├── .env.example              # variable names only, no values
 ├── config/
 │   ├── settings.yaml         # model, limits, paths
 │   ├── inventory.example.yaml
 │   └── allowlist.yaml        # permitted commands per platform
-├── src/netwarden/
+├── src/rootvex/
 │   ├── config.py             # load settings + env
 │   ├── logging.py            # audit log with redaction
 │   ├── llm.py                # Ollama client
@@ -291,7 +291,7 @@ audit logger with redaction, `.gitignore`, README setup steps, one passing test.
 ```bash
 uv sync
 uv run pytest
-uv run netwarden --version
+uv run rootvex version
 git status        # .env must NOT appear
 ```
 
@@ -311,7 +311,7 @@ git status        # .env must NOT appear
 
 **Test it** *(planned)*
 ```bash
-uv run netwarden ask "Why is Gi0/1 down on R1?"
+uv run rootvex ask "Why is Gi0/1 down on R1?"
 ```
 Then read the audit log and confirm each step was recorded.
 
@@ -377,7 +377,7 @@ cisco_ios:
 | "User can't reach a website" | DNS, default gateway, routing, ACL/policy, NAT, MTU |
 
 **Test it:** break the lab on purpose (shut an interface, change an OSPF
-area, mismatch a timer) and ask NetWarden to find the cause.
+area, mismatch a timer) and ask Rootvex to find the cause.
 
 **Done when:**
 - [ ] Each playbook finds its planted fault in the lab.
@@ -404,7 +404,7 @@ your lab notes, your runbooks. Never employer documents.
 
 ### Phase 6 — Evaluation
 
-**Goal:** measure whether NetWarden is actually good — and catch regressions.
+**Goal:** measure whether Rootvex is actually good — and catch regressions.
 
 **Builds:** 20+ scenarios in `evals/scenarios/`, each with a lab fault and
 the expected root cause, plus a script that runs them and scores results.
@@ -428,7 +428,7 @@ must_mention: ["area", "Gi0/1"]
 
 ### Phase 7 — API and web UI
 
-**Goal:** use NetWarden from a browser or other tools.
+**Goal:** use Rootvex from a browser or other tools.
 
 **Builds:** FastAPI endpoints (ask, run history, health), optional
 Open WebUI connection, simple authentication.
@@ -441,7 +441,7 @@ Open WebUI connection, simple authentication.
 
 ### Phase 8 — Approved configuration changes
 
-**Goal:** let NetWarden fix things — only with your explicit approval.
+**Goal:** let Rootvex fix things — only with your explicit approval.
 
 **Flow**
 1. Agent proposes a change with the **exact commands** and a **diff** of the
@@ -467,12 +467,12 @@ Open WebUI; Ollama on the host or in a GPU container via the NVIDIA Container
 Toolkit), full docs, a demo script for recordings.
 
 **Done when:**
-- [ ] A fresh Ubuntu machine can run NetWarden by following the README.
+- [ ] A fresh Ubuntu machine can run Rootvex by following the README.
 - [ ] The demo works end to end in the GNS3 lab.
 
 ---
 
-## Part 4 — Using and operating NetWarden
+## Part 4 — Using and operating Rootvex
 
 ### Asking good questions *(planned)*
 
@@ -497,7 +497,7 @@ Always check the evidence yourself before acting on a proposed fix.
 
 Change the model name in `config/settings.yaml` *(planned)*. For larger
 models (27B class), run Ollama on a rented 24 GB GPU (Google Cloud L4 or
-RunPod) and point NetWarden at that endpoint over a private connection
+RunPod) and point Rootvex at that endpoint over a private connection
 (WireGuard or Tailscale) — never expose Ollama to the internet. See
 [`DECISIONS.md`](DECISIONS.md) for prices.
 

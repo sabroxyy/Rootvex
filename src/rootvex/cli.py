@@ -1,4 +1,4 @@
-"""Command-line interface: `netwarden --help`."""
+"""Command-line interface: `rootvex --help`."""
 
 from __future__ import annotations
 
@@ -6,19 +6,19 @@ import typer
 from rich.console import Console
 from rich.table import Table
 
-from netwarden import __version__
-from netwarden.config import PROJECT_ROOT, Settings, load_settings
-from netwarden.log import setup_logging
+from rootvex import __version__
+from rootvex.config import PROJECT_ROOT, Settings, load_settings
+from rootvex.log import setup_logging
 
-app = typer.Typer(help="NetWarden - lab-only AI troubleshooting agent.", no_args_is_help=True)
+app = typer.Typer(help="Rootvex - lab-only AI troubleshooting agent.", no_args_is_help=True)
 console = Console()
 
 
 def _load_lab(s: Settings, fixtures: bool):
     """Inventory + allowlist + runner. --fixtures falls back to the example inventory."""
-    from netwarden.devices.allowlist import Allowlist
-    from netwarden.devices.connection import FixtureRunner, NetmikoRunner
-    from netwarden.devices.inventory import load_inventory
+    from rootvex.devices.allowlist import Allowlist
+    from rootvex.devices.connection import FixtureRunner, NetmikoRunner
+    from rootvex.devices.inventory import load_inventory
 
     inv_path = s.resolve(s.lab.inventory_file)
     if fixtures and not inv_path.exists():
@@ -32,8 +32,8 @@ def _load_lab(s: Settings, fixtures: bool):
 
 @app.command()
 def version() -> None:
-    """Print the NetWarden version."""
-    console.print(f"netwarden {__version__}")
+    """Print the Rootvex version."""
+    console.print(f"rootvex {__version__}")
 
 
 @app.command("config")
@@ -80,17 +80,17 @@ def ask(
     """Troubleshoot a problem: plan, collect read-only evidence, report."""
     from langchain_core.messages import ToolMessage
 
-    from netwarden.agent.graph import run_agent
-    from netwarden.llm import build_llm
+    from rootvex.agent.graph import run_agent
+    from rootvex.llm import build_llm
 
     s = load_settings()
     log_file = setup_logging(s.resolve(s.logging.dir), s.logging.level)
     if fake:
-        from netwarden.tools.fake import make_fake_tools
+        from rootvex.tools.fake import make_fake_tools
 
         tools, names = make_fake_tools(), ["R1", "R2"]
     else:
-        from netwarden.tools.device_tools import make_device_tools
+        from rootvex.tools.device_tools import make_device_tools
 
         inventory, allowlist, runner = _load_lab(s, fixtures)
         tools = make_device_tools(inventory, allowlist, runner, s.agent.max_output_chars)
