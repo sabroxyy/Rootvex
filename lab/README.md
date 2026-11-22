@@ -31,6 +31,10 @@ Routers run as **Cisco 7200 (Dynamips)** with `c7200-advipservicesk9-mz.152-4.S5
 | `if2` | GigabitEthernet2/0 | GigabitEthernet0/2 |
 | `if3` | GigabitEthernet3/0 | GigabitEthernet0/3 |
 
+**c7200 12.4(24)T5** (`c7200-adventerprisek9-mz.124-24.T5`) is the next image to try:
+set `LAB_C7200_IMAGE` to its file name and keep `LAB_ROUTER_PLATFORM=c7200`. The
+management VRF uses `ip vrf` syntax on this platform, which IOS 12.4 needs.
+
 **The c7200 15.2(4)S5 image does not boot on Dynamips 0.2.25** (TLB exception
 loop, see `docs/SETUP_LOG.md` section 11). The lab therefore moves to **IOSv**
 from CML-Personal:

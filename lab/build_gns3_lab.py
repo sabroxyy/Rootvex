@@ -102,11 +102,17 @@ def load_env() -> dict[str, str]:
     return env
 
 
-def render(text: str, env: dict[str, str], ports: dict[str, str] | None = None) -> str:
-    """Fill {{NAME}}: interface names from the router platform, secrets from .env."""
+def render(
+    text: str,
+    env: dict[str, str],
+    ports: dict[str, str] | None = None,
+    platform_vars: dict[str, str] | None = None,
+) -> str:
+    """Fill {{NAME}}: interface names and syntax from the router platform, secrets from .env."""
     port_vars = {
         f"IF_{k.upper()}" if k == "mgmt" else k.upper(): v for k, v in (ports or {}).items()
     }
+    port_vars.update(platform_vars or {})
 
     def sub(m: re.Match) -> str:
         key = m.group(1)
@@ -384,8 +390,9 @@ def main() -> None:
     for name, n in topo["nodes"].items():
         src = n.get("config") or n.get("network")
         if src:
-            ports = topo["templates"].get(n.get("template"), {}).get("ports")
-            rendered[name] = render((LAB_DIR / src).read_text(), env, ports)
+            tpl = topo["templates"].get(n.get("template"), {})
+            text = (LAB_DIR / src).read_text()
+            rendered[name] = render(text, env, tpl.get("ports"), tpl.get("vars"))
 
     # Cisco images are licensed, so they are never downloaded for you.
     for t in topo["templates"].values():

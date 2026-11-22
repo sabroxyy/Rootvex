@@ -23,6 +23,10 @@ templates:
     ram: 512
     slots: {slot0: C7200-IO-FE, slot1: PA-GE, slot2: PA-GE, slot3: PA-GE}
     ports: {mgmt: FastEthernet0/0, if1: GigabitEthernet1/0, if2: GigabitEthernet2/0, if3: GigabitEthernet3/0}
+    # IOS 12.4 has no "vrf definition"; "ip vrf" works on 12.4 and 15.x.
+    vars:
+      MGMT_VRF: "ip vrf MGMT"
+      MGMT_VRF_FWD: "ip vrf forwarding MGMT"
   iosv:
     name: Rootvex IOSv
     type: qemu
@@ -32,6 +36,9 @@ templates:
     adapters: 4
     port_name_format: "Gi0/{0}"
     ports: {mgmt: GigabitEthernet0/0, if1: GigabitEthernet0/1, if2: GigabitEthernet0/2, if3: GigabitEthernet0/3}
+    vars:
+      MGMT_VRF: "vrf definition MGMT\n address-family ipv4\n exit-address-family"
+      MGMT_VRF_FWD: "vrf forwarding MGMT"
   iosvl2:
     name: Rootvex IOSvL2
     type: qemu
