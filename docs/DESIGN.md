@@ -1,6 +1,6 @@
 # Rootvex design (Phase 0)
 
-**Version 2 — 22 November 2026** (renamed from NetWarden the same day). Phase 0 is approved and Phases 1–2 are built;
+**Version 2.1 — 22 November 2026** (renamed from NetWarden the same day; rename complete, one codebase). Phase 0 is approved and Phases 1–2 are built;
 Phase 3 code is built and waits for IOSv images to finish its live-lab checks.
 Sections 1–10 are the original Phase 0 design, kept as the record of what was
 agreed. **Section 11 lists what changed during the build and answers the open
@@ -406,7 +406,15 @@ typer 0.29.2, rich 15.0.0, langgraph 1.2.24, langchain-core 1.8.4,
 langchain-openai 1.8.5, netmiko 4.8.0; dev: pytest 9.2.0, ruff 0.17.6.
 Phase 5+ packages are added when those phases start.
 
-### 11.4 Risks seen in practice
+### 11.4 Rename to Rootvex
+
+Everything was renamed, including the lab device login (`rootvex`), the GNS3
+project (`rootvex-lab`), the templates (`Rootvex …`) and the router config names
+(`RV-MGMT`, `RV-TS`, `RV-VTI`). The two diverged copies were merged into one
+repository (`sabroxyy/Rootvex`, branch `main`). `scripts/check_old_name.sh`
+checks the workstation for leftovers.
+
+### 11.5 Risks seen in practice
 
 - **Small model gives up early** without structure → Phase 4 playbooks.
 - **Crash-looping emulated routers fill the disk** (~105 GB in hours) → test

@@ -1,6 +1,6 @@
 # Rootvex Manual
 
-**Version 2 — status as of 22 November 2026.** Rootvex was called NetWarden until 22 November 2026.
+**Version 2.1 — status as of 22 November 2026.** Rootvex was called NetWarden until 22 November 2026; the rename is complete.
 
 A step-by-step guide to building, running, and growing Rootvex: a
 self-hosted AI agent that helps network and security engineers troubleshoot
@@ -59,6 +59,9 @@ file names there may change.
 - The whole GNS3 lab is described as code (`lab/`) and builds with one command.
 - Health checks for the workstation: GPU (`lab/check_gpu.sh`) and GNS3
   (`lab/check_gns3_env.sh`).
+- One codebase under the new name: repo `sabroxyy/Rootvex`, branch `main`,
+  folder `~/projects/rootvex`. `scripts/check_old_name.sh` confirms no old
+  names are left on the workstation.
 
 ### Where we paused
 
@@ -67,6 +70,19 @@ The lab's routers need a working image. The Cisco 7200 image you have
 setting we tried (see Part 5). The decision is to use **IOSv + IOSvL2 from
 Cisco Modeling Labs – Personal (CML-Personal)**. The build already supports it.
 
+### Rename to Rootvex ✅
+
+| Done | Detail |
+|---|---|
+| Code | Package `rootvex`, CLI `rootvex`, variables `ROOTVEX_*`, logs `logs/rootvex-*.jsonl` |
+| Lab | Device login `rootvex`, GNS3 project `rootvex-lab`, templates `Rootvex …`, config names `RV-MGMT` / `RV-TS` / `RV-VTI` |
+| Two copies merged | The newer work from `~/netwarden` (16 commits) was merged into the renamed repo and renamed too |
+| Clean-up | Old GNS3 projects and templates removed (`--remove-old`), old folders `~/netwarden`, `~/projects/netwarden`, `~/Desktop/NetWarden` deleted, old branches deleted; only `main` remains |
+| Check | `bash scripts/check_old_name.sh` → "No old names left that need action" |
+
+Only history lines still say "NetWarden" (the original name decision and the
+"renamed from" notes).
+
 ### Next steps (in order)
 
 1. Get the CML-Personal reference platform ISO and copy two images to
@@ -74,10 +90,12 @@ Cisco Modeling Labs – Personal (CML-Personal)**. The build already supports it
    - `vios-adventerprisek9-m.spa.159-3.m9.qcow2` (routers)
    - `vios_l2-adventerprisek9-m.ssa.high_iron_20200929.qcow2` (switch)
 2. In `.env`: `LAB_ROUTER_PLATFORM=iosv` and `LAB_SWITCH_PLATFORM=iosvl2`.
-3. `uv run python lab/build_gns3_lab.py --rebuild --start`
-4. Finish the Phase 3 checklist (SSH works, agent runs real commands, the
+3. `cp config/inventory.example.yaml config/inventory.local.yaml` and uncomment SW1.
+4. `uv run python lab/build_gns3_lab.py --rebuild --start`, then
+   `ssh rootvex@10.99.0.11` (the device login is `rootvex`).
+5. Finish the Phase 3 checklist (SSH works, agent runs real commands, the
    allowlist blocks a config command on a real router).
-5. Start Phase 4 (playbooks).
+6. Start Phase 4 (playbooks).
 
 ### Where the code lives
 
@@ -554,12 +572,16 @@ uv sync && uv run pytest
 | 7 | Disk 100% full | Crash loop wrote ~105 GB of Dynamips logs | Deleted logs; test scripts now stop a router after 3 crash messages |
 | 8 | IOSv links would fail | GNS3 names IOSv ports `Gi0/1`, configs say `GigabitEthernet0/1` | Port matching treats long and short names the same (caught in a dry run) |
 | 9 | `git pull` blocked | A stray Dynamips log was committed by mistake | Removed; Dynamips files added to `.gitignore` |
+| 10 | Two copies of the code diverged | Rename done in `~/projects/rootvex` while new work went on in `~/netwarden` | One merge onto the renamed `main` (git carried the code into `src/rootvex/`), then the same rename on the new content; 52 tests pass |
+| 11 | GNS3 could not delete the old c7200 project | Docker had created files owned by root inside it | `sudo rm -rf <project>/project-files/docker`; `--remove-old` now keeps going and prints that command |
+| 12 | Name check reported itself | The checker's own search patterns contain the old name | The script skips its own file |
 
 Lessons:
 - Never leave a crash-looping Dynamips router running.
 - A small model needs structure (playbooks) more than a bigger context.
 - Test the lab build against a real GNS3 server before using it — the dry run
   caught the IOSv port-name bug before it reached the workstation.
+- Keep one working copy. Two folders for one project led to diverged history.
 
 ---
 

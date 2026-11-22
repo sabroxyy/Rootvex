@@ -4,7 +4,7 @@ A self-hosted, open-source AI agent that helps network and security engineers
 troubleshoot and configure network and security devices — built from scratch,
 running locally, lab-first.
 
-> **Status (22 Nov 2026):** Phases 0–2 done. Phase 3 (read-only device tools)
+> **Status (22 Nov 2026):** Renamed from NetWarden (complete). Phases 0–2 done. Phase 3 (read-only device tools)
 > is built and tested with recorded outputs and a real model on the GPU; its
 > live-lab checks wait for IOSv images (CML-Personal). Next: Phase 4 playbooks.
 > Full status and how-to: [`docs/MANUAL.md`](docs/MANUAL.md)

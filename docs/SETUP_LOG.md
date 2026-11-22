@@ -119,6 +119,20 @@ GNS3 GUI and server 2.2.61, ubridge with cap_net_admin, dynamips 0.2.25, QEMU 10
 mtools, Docker without sudo, GNS3 VM disabled, server on 127.0.0.1:3080 with auth.
 `tap-nw` created with nmcli (10.99.0.1/24). VirtualBox 7.2 also installed (unused).
 
+## 13. Rename to Rootvex and clean-up (2026-11-22/23)
+
+- Merged the 16 newer commits from `~/netwarden` into the renamed repo
+  (`~/projects/rootvex`, `github.com/sabroxyy/Rootvex`), renamed them, and
+  renamed what had been kept for the old lab (device login `rootvex`, GNS3
+  `rootvex-lab`, templates `Rootvex …`, `RV-*` config names).
+- `.env` copied from `~/netwarden` with `NETWARDEN_*` → `ROOTVEX_*`.
+- `uv run python lab/build_gns3_lab.py --remove-old` removed the old projects and
+  templates, after `sudo rm -rf` of root-owned Docker files in the old project.
+- Deleted `~/netwarden`, `~/projects/netwarden`, `~/Desktop/NetWarden` and the
+  old branches; GitHub has only `main`.
+- `bash scripts/check_old_name.sh`: "No old names left that need action".
+  Kept on purpose: old Claude Code chat history under `~/.claude/projects/`.
+
 ## Next
 
 - [x] Confirm `docker run hello-world` without sudo
@@ -127,11 +141,12 @@ mtools, Docker without sudo, GNS3 VM disabled, server on 127.0.0.1:3080 with aut
 - [x] Management interface `tap-nw`
 - [x] Copy `.env` from `~/netwarden` to `~/projects/rootvex`, `NETWARDEN_*` renamed to `ROOTVEX_*`
       (`config/inventory.local.yaml` never existed there; create it from the example)
-- [ ] Check the workstation for the old name: `bash scripts/check_old_name.sh`
-- [ ] Remove the old GNS3 project and templates: `uv run python lab/build_gns3_lab.py --remove-old`
-- [ ] Retire `~/netwarden` (after the check above)
+- [x] Check the workstation for the old name: `bash scripts/check_old_name.sh`
+- [x] Remove the old GNS3 project and templates: `uv run python lab/build_gns3_lab.py --remove-old`
+- [x] Retire `~/netwarden`
 - [ ] **IOSv + IOSvL2 images from CML-Personal** → `~/GNS3/images/QEMU/`
+- [ ] `cp config/inventory.example.yaml config/inventory.local.yaml` (uncomment SW1)
 - [ ] Build the lab: `uv run python lab/build_gns3_lab.py --rebuild --start`
-- [ ] SSH to R1 (10.99.0.11) from the host; finish Phase 3 live-lab checks
+- [ ] `ssh rootvex@10.99.0.11` from the host; finish Phase 3 live-lab checks
 - [ ] NVIDIA Container Toolkit (Phase 9)
 - [ ] Open WebUI (Phase 7, optional)
