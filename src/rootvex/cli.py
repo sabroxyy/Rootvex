@@ -124,7 +124,10 @@ def ask(
         console.rule("Tool calls")
         for m in state["messages"]:
             if isinstance(m, ToolMessage):
-                console.print(m.content[:1500], markup=False)
+                text = m.content
+                if len(text) > 1500:  # display only; the model saw the full output
+                    text = text[:1500] + f"\n[... {len(m.content) - 1500} more chars not shown]"
+                console.print(text, markup=False)
     console.rule("Report")
     console.print(state["report"].to_text(), markup=False)
     console.print(f"\n[dim]run_id={state['run_id']}  steps={state['steps']}  log={log_file}[/dim]")
