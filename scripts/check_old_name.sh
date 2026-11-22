@@ -21,7 +21,7 @@ cd "$REPO"
 HISTORY='Chosen: \*\*NetWarden|renamed from NetWarden|was called NetWarden|old NetWarden URL|NetWarden → Rootvex|NETWARDEN_\* (renamed )?to `?ROOTVEX_|from `~/netwarden`|Retire `~/netwarden`|\(was `netwarden`\)|\(was `netwarden-lab`\)|\(were `NetWarden|\(were `NW-|netwarden-c7200-test\]|projects: \[netwarden-lab|template_prefix: "NetWarden|pre-rename|from before the rename'
 
 section "Repository files ($REPO)"
-hits=$(git grep -n -i -E 'netwarden|\bNW-(MGMT|TS|VTI)\b' -- ':!*.pdf' ':!uv.lock' 2>/dev/null)
+hits=$(git grep -n -i -E 'netwarden|\bNW-(MGMT|TS|VTI)\b' -- ':!*.pdf' ':!uv.lock' ':!scripts/check_old_name.sh' 2>/dev/null)
 bad=$(printf '%s\n' "$hits" | grep -v -E "$HISTORY" | grep -v '^$')
 hist=$(printf '%s\n' "$hits" | grep -E "$HISTORY" | grep -c .)
 if [ -n "$bad" ]; then old "old name in tracked files:"; printf '%s\n' "$bad" | cut -c1-160 | sed 's/^/        /'

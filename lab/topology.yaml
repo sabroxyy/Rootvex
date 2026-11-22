@@ -11,7 +11,7 @@ switch_platform: builtin     # builtin | iosvl2       (LAB_SWITCH_PLATFORM)
 builtin_switch_ports: {p1: "1", p2: "2"}
 # Pre-rename GNS3 objects, deleted only by:  build_gns3_lab.py --remove-old
 old_names:
-  projects: [netwarden-lab, netwarden-c7200-test]
+  projects: [netwarden-lab, netwarden, netwarden-c7200-test]
   template_prefix: "NetWarden "
 
 templates:

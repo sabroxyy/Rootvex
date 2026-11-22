@@ -272,25 +272,43 @@ def set_idlepc(api: GNS3, pid: str, nodes: dict, templates: dict, boot_wait: int
 
 
 def remove_old(api: GNS3, old: dict) -> None:
-    """Delete GNS3 objects left from before the rename (exact names from topology.yaml)."""
+    """Delete GNS3 objects left from before the rename (exact names from topology.yaml).
+
+    Keeps going after an error, so one stuck project doesn't block the rest.
+    """
     projects = set(old.get("projects", []))
     prefix = old.get("template_prefix")
-    removed = 0
+    removed, failed = 0, []
     for p in api.call("GET", "/projects"):
-        if p["name"] in projects:
+        if p["name"] not in projects:
+            continue
+        try:
             if p["status"] != "opened":
                 api.call("POST", f"/projects/{p['project_id']}/open", {})
             api.call("POST", f"/projects/{p['project_id']}/nodes/stop", {}, timeout=300)
             api.call("DELETE", f"/projects/{p['project_id']}")
             print(f"  deleted project {p['name']!r} (and its files)")
             removed += 1
+        except SystemExit as exc:
+            failed.append(p)
+            print(f"  could not delete project {p['name']!r}: {str(exc).split(': ', 1)[-1][:200]}")
     if prefix:
         for t in api.call("GET", "/templates"):
             if t["name"].startswith(prefix) and not t.get("builtin"):
-                api.call("DELETE", f"/templates/{t['template_id']}")
-                print(f"  deleted template {t['name']!r}")
-                removed += 1
-    print(f"Removed {removed} old GNS3 object(s)." if removed else "Nothing old left in GNS3.")
+                try:
+                    api.call("DELETE", f"/templates/{t['template_id']}")
+                    print(f"  deleted template {t['name']!r}")
+                    removed += 1
+                except SystemExit as exc:
+                    print(f"  could not delete template {t['name']!r}: {exc}")
+    print(f"Removed {removed} old GNS3 object(s)." if removed else "Nothing old removed.")
+    for p in failed:
+        folder = p.get("path") or f"~/GNS3/projects/{p['project_id']}"
+        print(
+            f"\nProject {p['name']!r} has files GNS3 cannot delete (usually Docker files owned "
+            f"by root). Fix, then run --remove-old again:\n"
+            f"  sudo rm -rf {folder}/project-files/docker"
+        )
 
 
 def main() -> None:
