@@ -18,6 +18,9 @@ dependencies = [
     "langchain-openai==1.8.5",
     # Phase 3 - device access
     "netmiko==4.8.0",
+    # paramiko 5.x removed SHA-1 key exchange and ssh-rsa, the only methods classic
+    # IOS (12.4, IOSv 15.x) offers. 4.0.0 still has them; netmiko 4.8 supports it.
+    "paramiko==4.0.0",
 ]
 
 [project.scripts]

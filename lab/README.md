@@ -97,6 +97,28 @@ are removed with `uv run python lab/build_gns3_lab.py --remove-old`.
 
 RAM: about 2.5 GB with everything running (4 x 512 MB routers + containers).
 
+## SSH to classic IOS from your PC
+
+IOS 12.4 and IOSv 15.x only offer SHA-1 key exchange and `ssh-rsa` host keys,
+which current OpenSSH refuses by default ("no matching key exchange method").
+Allow them for the lab network only, in `~/.ssh/config`:
+
+```
+Host 10.99.0.*
+    KexAlgorithms +diffie-hellman-group14-sha1,diffie-hellman-group-exchange-sha1
+    HostKeyAlgorithms +ssh-rsa
+    PubkeyAcceptedAlgorithms +ssh-rsa
+    Ciphers +aes128-cbc,aes256-cbc
+```
+
+Rootvex itself connects through paramiko, pinned to 4.0.0 for the same reason
+(paramiko 5 removed these algorithms).
+
+IOS 12.4 also does not create its RSA key from the startup config, so SSH starts
+disabled. `--start` fixes this on every router through its console
+(`crypto key generate rsa`, then `write memory`); on a running lab use
+`uv run python lab/build_gns3_lab.py --ssh`.
+
 ## Check it works
 
 Give the routers 1 to 3 minutes to boot, then:
