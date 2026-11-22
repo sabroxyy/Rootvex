@@ -72,7 +72,7 @@ Apache License 2.0 — see [`LICENSE`](LICENSE).
 
 ## Docs
 
-- [`docs/MANUAL.md`](docs/MANUAL.md) — project manual: how it works, setup, every build phase from Phase 0 ([PDF](docs/NetWarden-Manual.pdf))
+- [`docs/MANUAL.md`](docs/MANUAL.md) — project manual: how it works, setup, every build phase from Phase 0 ([PDF](docs/Rootvex-Manual.pdf))
 - [`docs/PROJECT_PROMPT.md`](docs/PROJECT_PROMPT.md) — build brief for Claude Code
 - [`docs/DECISIONS.md`](docs/DECISIONS.md) — hardware, models, cloud, and tooling decisions
 - [`lab/`](lab/README.md) — GNS3 lab as code: device configs and a one-command build script
