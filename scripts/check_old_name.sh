@@ -18,7 +18,7 @@ REPO=$(git rev-parse --show-toplevel 2>/dev/null) || { echo "Run this inside the
 cd "$REPO"
 
 # Lines that mention NetWarden on purpose (history of the name).
-HISTORY='Chosen: \*\*NetWarden|renamed from NetWarden|was called NetWarden|old NetWarden URL|NetWarden → Rootvex|NETWARDEN_\* (renamed )?to `?ROOTVEX_|from `~/netwarden`|Retire `~/netwarden`|\(was `netwarden`\)|\(was `netwarden-lab`\)|\(were `NetWarden|\(were `NW-|netwarden-c7200-test\]|projects: \[netwarden-lab|template_prefix: "NetWarden|pre-rename|from before the rename'
+HISTORY='Chosen: \*\*NetWarden|renamed from NetWarden|was called NetWarden|old NetWarden URL|NetWarden → Rootvex|NETWARDEN_\* (renamed )?to `?ROOTVEX_|from `~/netwarden`|Retire `~/netwarden`|\(was `netwarden`\)|\(was `netwarden-lab`\)|\(were `NetWarden|\(were `NW-|netwarden-c7200-test\]|projects: \[netwarden-lab|template_prefix: "NetWarden|pre-rename|from before the rename|Renamed from NetWarden|Only history lines still say|old folders `~/netwarden`|new work went on in `~/netwarden`'
 
 section "Repository files ($REPO)"
 hits=$(git grep -n -i -E 'netwarden|\bNW-(MGMT|TS|VTI)\b' -- ':!*.pdf' ':!uv.lock' ':!scripts/check_old_name.sh' 2>/dev/null)
