@@ -234,6 +234,7 @@ Stage B of the design: HQ, ISP and Branch, with out-of-band management.
 | `lab/hosts/*.interfaces` | IP settings for PC1, PC2, WEB1 (Docker) |
 | `lab/build_gns3_lab.py` | Builds the project through the GNS3 API |
 | `lab/README.md` | Build steps, checks, design notes, PNETLab notes |
+| `docs/lab-topology-3d.html` | Interactive 3D view: Phase 3 (live), Phase 4 (fault points), Later (FW1, managed SW1) |
 
 **Logical ports.** Router configs say `{{IF_MGMT}}`, `{{IF1}}`…; the platform
 maps them to real names, so the same configs run on any router image:

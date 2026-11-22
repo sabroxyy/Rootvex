@@ -17,6 +17,8 @@
     --mgmt: #e0a94a;     /* management plane, VRF MGMT */
     --tunnel: #c98be8;   /* IPsec VTI */
     --planned: #7d8d94;
+    --fault: #f07167;    /* Phase 4 fault points */
+    --ok: #7bd389;
     --hq: #2f6f8f;
     --isp: #6b6f86;
     --branch: #3f7a5a;
@@ -55,6 +57,15 @@
   .hide-ip .ip { display: none; }
   .hide-mgmt .mgonly { display: none; }
   .hide-planned .plonly { display: none; }
+  .hide-faults .fonly { display: none; }
+  .lbl.fault { transform: translate(-50%, -50%); font-family: var(--font-display); font-size: 11px;
+    font-weight: 600; color: var(--fault); letter-spacing: 0.02em; }
+  .phases { display: inline-flex; border: 1px solid var(--line); border-radius: 4px; overflow: hidden; }
+  .phases button { border: 0; border-radius: 0; border-right: 1px solid var(--line); }
+  .phases button:last-child { border-right: 0; }
+  .phases button[aria-checked="true"] { background: var(--data); color: var(--bg); }
+  .phases button[aria-checked="false"] { color: var(--muted); }
+  .ok { color: var(--ok); } .bad { color: var(--fault); }
 
   header {
     position: fixed; top: env(safe-area-inset-top, 0px); left: 0; right: 0;
@@ -129,13 +140,17 @@
 
 <header>
   <h1>Rootvex Lab Topology</h1>
-  <div class="sub">GNS3 on Ubuntu · data plane above, out-of-band management (VRF MGMT) below · drag to orbit, scroll to zoom</div>
+  <div class="sub">Live GNS3 lab · 4 × Cisco 7200, IOS 12.4(24)T5 · data plane above, management (VRF MGMT) below · drag to orbit, scroll to zoom</div>
 </header>
 
 <div class="controls" role="toolbar" aria-label="View options">
+  <div class="phases" role="radiogroup" aria-label="Project phase">
+    <button id="ph-3" role="radio" aria-checked="true">Phase 3 · live</button>
+    <button id="ph-4" role="radio" aria-checked="false">Phase 4 · faults</button>
+    <button id="ph-later" role="radio" aria-checked="false">Later</button>
+  </div>
   <button id="t-ip" aria-pressed="true"><span class="sw" style="background:var(--data)"></span>Addresses</button>
   <button id="t-mgmt" aria-pressed="true"><span class="sw" style="background:var(--mgmt)"></span>Management plane</button>
-  <button id="t-plan" aria-pressed="false"><span class="sw" style="background:var(--planned)"></span>Stage C: FW1</button>
   <button id="t-anim" aria-pressed="true"><span class="sw" style="background:var(--tunnel)"></span>Traffic</button>
   <button id="t-reset">Reset view</button>
 </div>
@@ -150,7 +165,7 @@
   const C = (name) => new THREE.Color(css.getPropertyValue(name).trim());
   const COL = {
     bg: C('--bg'), data: C('--data'), mgmt: C('--mgmt'), tunnel: C('--tunnel'), planned: C('--planned'),
-    hq: C('--hq'), isp: C('--isp'), branch: C('--branch'), line: C('--line'),
+    hq: C('--hq'), isp: C('--isp'), branch: C('--branch'), line: C('--line'), fault: C('--fault'),
   };
   const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -158,41 +173,41 @@
   const MGMT_Y = -6.5;
   const nodes = {
     PC1:  { pos: [-13, 0, 0], kind: 'pc', zone: 'HQ', role: 'HQ user PC · GNS3 docker gns3/ipterm',
-            iface: [['eth0', '10.10.10.10/24, gw 10.10.10.1']], ram: '~30 MB',
-            faults: ['Wrong default gateway (user can’t reach website)'] },
-    SW1:  { pos: [-8.5, 0, 0], kind: 'switch', zone: 'HQ', role: 'Access switch · Cisco IOSvL2', mgmt: '10.99.0.21 (SVI VLAN 99)',
-            iface: [['Gi1/0', 'access VLAN 10 → PC1'], ['Gi0/1', '→ R1 Gi0/2'], ['Gi0/0', 'access VLAN 99 → MGMT-SW']], ram: '768 MB',
-            faults: ['Port-security err-disable on Gi1/0', 'Speed/duplex mismatch'] },
-    R1:   { pos: [-4, 0, 0], kind: 'router', zone: 'HQ', role: 'HQ router · Cisco IOSv · OSPF area 0', mgmt: '10.99.0.11 (Gi0/0, VRF MGMT)',
-            iface: [['Gi0/1', '10.0.12.1/30 → R2'], ['Gi0/2', '10.10.10.1/24 HQ LAN']], ram: '512 MB',
-            faults: ['OSPF area / hello-dead / MTU / auth mismatch with R2', 'passive-interface on Gi0/1', 'Interface shutdown'] },
-    R2:   { pos: [0.5, 0, 0], kind: 'router', zone: 'HQ', role: 'HQ edge · Cisco IOSv · NAT, eBGP, IPsec', mgmt: '10.99.0.12 (Gi0/0, VRF MGMT)',
-            iface: [['Gi0/1', '10.0.12.2/30 → R1'], ['Gi0/2', '203.0.113.1/30 → ISP1'], ['Tunnel0', '172.16.0.1/30 IPsec VTI → BR1']], ram: '512 MB',
-            faults: ['eBGP: wrong remote-as / neighbor IP / ACL on TCP 179', 'NAT missing', 'IPsec PSK or transform-set mismatch'] },
-    ISP1: { pos: [6, 0, 0], kind: 'router', zone: 'ISP', role: 'ISP router · Cisco IOSv · AS 65100 · DNS', mgmt: '10.99.0.14 (Gi0/0, VRF MGMT)',
-            iface: [['Gi0/1', '203.0.113.2/30 → R2'], ['Gi0/2', '198.51.100.1/30 → BR1'], ['Gi0/3', '192.0.2.1/24 → WEB1'], ['DNS', 'ip host www.lab.test 192.0.2.80']], ram: '512 MB',
-            faults: ['DNS host entry missing', 'ISP link down (VPN and BGP drop)'] },
+            iface: [['eth0', '10.10.10.10/24, gw 10.10.10.1, DNS 192.0.2.1']], ram: '~30 MB',
+            faults: ['Wrong default gateway (playbook 5: user can’t reach website)'] },
+    SW1:  { pos: [-8.5, 0, 0], kind: 'switch', zone: 'HQ', role: 'HQ access switch · GNS3 built-in switch (unmanaged)',
+            iface: [['port 1', '→ PC1'], ['port 2', '→ R1 Gi2/0'], ['mgmt', 'none (managed IOSvL2 SW1 is in “Later”)']], ram: '0',
+            faults: [] },
+    R1:   { pos: [-4, 0, 0], kind: 'router', zone: 'HQ', role: 'HQ router · Cisco 7200, IOS 12.4(24)T5 · OSPF area 0', mgmt: '10.99.0.11 (Fa0/0, VRF MGMT)',
+            iface: [['Gi1/0', '10.0.12.1/30 → R2 (OSPF)'], ['Gi2/0', '10.10.10.1/24 HQ LAN (passive)'], ['Gi3/0', 'shutdown'], ['default', 'static → 10.0.12.2']], ram: '512 MB',
+            faults: ['Playbook 1: shutdown / flapping on Gi1/0', 'Playbook 2: OSPF area, hello/dead, MTU or auth mismatch with R2'] },
+    R2:   { pos: [0.5, 0, 0], kind: 'router', zone: 'HQ', role: 'HQ edge · Cisco 7200, IOS 12.4 · OSPF, eBGP, NAT, IPsec', mgmt: '10.99.0.12 (Fa0/0, VRF MGMT)',
+            iface: [['Gi1/0', '10.0.12.2/30 → R1 (OSPF, NAT inside)'], ['Gi2/0', '203.0.113.1/30 → ISP1 (eBGP, NAT outside)'], ['Tunnel0', '172.16.0.1/30 IPsec VTI → BR1 (OSPF)']], ram: '512 MB',
+            faults: ['Playbook 3: wrong remote-as / neighbor IP / ACL on TCP 179', 'Playbook 4: IPsec PSK or transform-set mismatch', 'Playbook 5: NAT missing'] },
+    ISP1: { pos: [6, 0, 0], kind: 'router', zone: 'ISP', role: 'ISP router · Cisco 7200, IOS 12.4 · AS 65100 · DNS', mgmt: '10.99.0.14 (Fa0/0, VRF MGMT)',
+            iface: [['Gi1/0', '203.0.113.2/30 → R2'], ['Gi2/0', '198.51.100.1/30 → BR1'], ['Gi3/0', '192.0.2.1/24 → WEB1'], ['DNS', 'www.lab.test → 192.0.2.80']], ram: '512 MB',
+            faults: ['Playbook 4: ISP link down (tunnel and BGP drop)', 'Playbook 5: DNS host entry missing'] },
     WEB1: { pos: [8, 0, 4.2], kind: 'server', zone: 'ISP', role: 'Web server · docker nginx:alpine',
             iface: [['eth0', '192.0.2.80/24 · www.lab.test']], ram: '~20 MB',
-            faults: ['Container stopped'] },
-    BR1:  { pos: [11.5, 0, 0], kind: 'router', zone: 'Branch', role: 'Branch router · Cisco IOSv · AS 65002', mgmt: '10.99.0.13 (Gi0/0, VRF MGMT)',
-            iface: [['Gi0/1', '198.51.100.2/30 → ISP1'], ['Gi0/2', '10.20.20.1/24 Branch LAN'], ['Tunnel0', '172.16.0.2/30 IPsec VTI → R2']], ram: '512 MB',
-            faults: ['eBGP to ISP1 down', 'No route to IPsec peer', 'OSPF over tunnel down'] },
+            faults: ['Playbook 5: container stopped'] },
+    BR1:  { pos: [11.5, 0, 0], kind: 'router', zone: 'Branch', role: 'Branch router · Cisco 7200, IOS 12.4 · AS 65002', mgmt: '10.99.0.13 (Fa0/0, VRF MGMT)',
+            iface: [['Gi1/0', '198.51.100.2/30 → ISP1 (eBGP, NAT outside)'], ['Gi2/0', '10.20.20.1/24 Branch LAN'], ['Tunnel0', '172.16.0.2/30 IPsec VTI → R2 (OSPF)']], ram: '512 MB',
+            faults: ['Playbook 3: eBGP to ISP1 down', 'Playbook 4: no route to the IPsec peer'] },
     PC2:  { pos: [16, 0, 0], kind: 'pc', zone: 'Branch', role: 'Branch user PC · GNS3 docker gns3/ipterm',
             iface: [['eth0', '10.20.20.10/24, gw 10.20.20.1']], ram: '~30 MB', faults: [] },
-    FW1:  { pos: [3.25, 0, -4], kind: 'firewall', zone: 'HQ', planned: true, role: 'Stage C · FortiGate-VM between R2 and ISP1', mgmt: '10.99.0.31',
-            iface: [['inside', '→ R2'], ['outside', '→ ISP1']], ram: '~2 GB',
+    FW1:  { pos: [3.25, 0, -4], kind: 'firewall', zone: 'HQ', planned: true, role: 'Later (Stage C) · FortiGate-VM 7.0.5 between R2 and ISP1', mgmt: '10.99.0.31',
+            iface: [['inside', '→ R2'], ['outside', '→ ISP1'], ['image', 'needs the KVM build (FGT_VM64_KVM)']], ram: '~2 GB',
             faults: ['Policy / NAT faults (Fortinet playbooks, later)'] },
     'MGMT-SW': { pos: [1.5, MGMT_Y, 11], kind: 'mswitch', zone: 'MGMT', role: 'GNS3 built-in Ethernet switch · management only',
-            iface: [['LAN', '10.99.0.0/24']], ram: '0', faults: [] },
-    HOST: { pos: [-8, MGMT_Y, 11], kind: 'host', zone: 'MGMT', label: 'Ubuntu host', role: 'Dell Precision 7810 · runs Rootvex + Ollama',
-            iface: [['tap-nw', '10.99.0.1/24 (GNS3 Cloud node)']], ram: '15 GiB total',
-            faults: [], note: 'Rootvex reaches devices only here, over SSH, with allowlisted read-only commands. No route to the internet or the home LAN (192.168.1.0/24).' },
+            iface: [['LAN', '10.99.0.0/24'], ['port 0', 'MGMT-CLOUD (host tap-nw)'], ['ports 1–4', 'R1, R2, BR1, ISP1']], ram: '0', faults: [] },
+    HOST: { pos: [-8, MGMT_Y, 11], kind: 'host', zone: 'MGMT', label: 'Ubuntu host', role: 'Dell Precision 7810 · runs Rootvex + Ollama (granite4:3b on the GTX 1060)',
+            iface: [['tap-nw', '10.99.0.1/24 (GNS3 Cloud node)'], ['SSH', 'user rootvex, SHA-1 algorithms for IOS 12.4']], ram: '15 GiB total',
+            faults: [], note: 'Rootvex reaches devices only here, over SSH, with allowlisted read-only commands. Routers accept SSH only from 10.99.0.1 (access-class RV-MGMT). No route to the internet or the home LAN.' },
   };
-  const mgmtOf = ['SW1', 'R1', 'R2', 'ISP1', 'BR1'];
+  const mgmtOf = ['R1', 'R2', 'ISP1', 'BR1'];
 
   const links = [
-    { a: 'PC1', b: 'SW1', net: '10.10.10.0/24', note: 'VLAN 10' },
+    { a: 'PC1', b: 'SW1', net: '10.10.10.0/24' },
     { a: 'SW1', b: 'R1', net: '10.10.10.0/24' },
     { a: 'R1', b: 'R2', net: '10.0.12.0/30', note: 'OSPF area 0' },
     { a: 'R2', b: 'ISP1', net: '203.0.113.0/30', note: 'eBGP 65001↔65100' },
@@ -230,8 +245,9 @@
   scene.add(sun);
 
   // ---- Planes and zones ---------------------------------------------------------
-  const groups = { mgmt: new THREE.Group(), planned: new THREE.Group() };
-  scene.add(groups.mgmt, groups.planned);
+  const groups = { mgmt: new THREE.Group(), planned: new THREE.Group(), faults: new THREE.Group() };
+  scene.add(groups.mgmt, groups.planned, groups.faults);
+  groups.faults.visible = false;
   groups.planned.visible = false;
 
   function slab(x0, x1, z0, z1, y, color, opacity) {
@@ -359,6 +375,33 @@
   // Planned FW1 (stage C): dashed links R2 - FW1 - ISP1 and its management drop
   dashed(V('R2', LINK_Y), V('FW1', LINK_Y), COL.planned, groups.planned);
   dashed(V('FW1', LINK_Y), V('ISP1', LINK_Y), COL.planned, groups.planned);
+  // Later: a managed IOSvL2 SW1 gets a management link (MGMT-SW port 5)
+  const sw1Floor = new THREE.Vector3(nodes.SW1.pos[0], MGMT_Y + 0.25, nodes.SW1.pos[2]);
+  dashed(V('SW1', 0.05), sw1Floor, COL.planned, groups.planned);
+  dashed(sw1Floor, mg, COL.planned, groups.planned);
+
+  // ---- Phase 4: where each playbook's fault is planted -----------------------------
+  const faultPoints = [
+    { n: 1, name: 'Interface down', at: V('R1', LINK_Y).lerp(V('R2', LINK_Y), 0.22), node: 'R1',
+      detail: 'R1 Gi1/0: shutdown, flapping, errors' },
+    { n: 2, name: 'OSPF neighbor down', at: V('R1', LINK_Y).lerp(V('R2', LINK_Y), 0.62), node: 'R1',
+      detail: 'R1–R2: area, hello/dead, MTU or auth mismatch; passive-interface' },
+    { n: 3, name: 'BGP neighbor down', at: V('R2', LINK_Y).lerp(V('ISP1', LINK_Y), 0.5), node: 'R2',
+      detail: 'R2/BR1 ↔ ISP1: wrong remote-as or neighbor IP, ACL on TCP 179' },
+    { n: 4, name: 'IPsec VPN down', at: tunnelCurve.getPointAt(0.5), node: 'R2',
+      detail: 'R2 ↔ BR1 Tunnel0: PSK or transform-set mismatch, ISP link down' },
+    { n: 5, name: 'Can’t reach website', at: V('PC1', LINK_Y + 0.6), node: 'PC1',
+      detail: 'PC1 → www.lab.test: gateway, NAT on R2, DNS on ISP1, WEB1 stopped' },
+  ];
+  const faultRings = [];
+  faultPoints.forEach((f) => {
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(0.55, 0.07, 10, 40),
+      new THREE.MeshBasicMaterial({ color: COL.fault, transparent: true, opacity: 0.9 }));
+    ring.position.copy(f.at);
+    ring.rotation.x = Math.PI / 2;
+    groups.faults.add(ring);
+    faultRings.push(ring);
+  });
 
   // ---- Traffic pulses -------------------------------------------------------------
   const pulseGeo = new THREE.SphereGeometry(0.14, 12, 12);
@@ -393,7 +436,9 @@
   }
   Object.entries(nodes).forEach(([k, n]) => {
     const top = n.kind === 'server' || n.kind === 'host' ? 1.8 : n.kind === 'pc' ? 1.45 : 1.0;
-    const addr = n.mgmt ? n.mgmt.split(' ')[0] : (n.iface[0] ? n.iface[0][1].split(/[ ,·]/)[0] : '');
+    const addr = n.mgmt ? n.mgmt.split(' ')[0]
+      : n.kind === 'switch' ? 'unmanaged'
+      : (n.iface[0] ? n.iface[0][1].split(/[ ,·]/)[0] : '');
     const cls = n.planned ? 'plonly' : (n.zone === 'MGMT' ? 'mgonly' : '');
     label('<b>' + (n.label || k) + '</b><span class="ip">' + addr + '</span>', V(k, top), cls);
   });
@@ -404,7 +449,13 @@
     label(l.net + (l.note ? '<br>' + l.note : ''), mid, 'link ip');
   });
   label('Tunnel0 IPsec VTI<br>172.16.0.0/30 · OSPF area 0', new THREE.Vector3(6, 4.9, -1.2), 'link tn ip');
-  label('10.99.0.0/24 · SSH only', mg.clone().add(new THREE.Vector3(-4.2, 0.4, 0)), 'link mg ip mgonly');
+  // Labels sit in front of the link (towards the viewer), staggered so they don't collide.
+  const faultLabelOffset = { 1: [-0.4, 0, 2.0], 2: [0.4, 0, 3.2], 3: [0, 0, 2.0], 4: [0, 1.1, 0], 5: [0, 0, 2.4] };
+  faultPoints.forEach((f) => {
+    const o = faultLabelOffset[f.n];
+    label(f.n + ' · ' + f.name, f.at.clone().add(new THREE.Vector3(o[0], o[1], o[2])), 'fault fonly');
+  });
+  label('10.99.0.0/24 · SSH from 10.99.0.1 only', mg.clone().add(new THREE.Vector3(-4.2, 0.4, 0)), 'link mg ip mgonly');
   label('HQ · AS 65001', new THREE.Vector3(-6.5, -0.4, 6.4), 'zone');
   label('ISP · AS 65100', new THREE.Vector3(6, -0.4, 6.4), 'zone');
   label('Branch · AS 65002', new THREE.Vector3(13.7, -0.4, 6.4), 'zone');
@@ -419,17 +470,32 @@
     return '<div class="chips">' + Object.keys(nodes).map((k) =>
       '<button class="chip" data-node="' + k + '">' + (nodes[k].label || k) + '</button>').join('') + '</div>';
   }
+  let phase = '3';
   function showOverview() {
-    detail.innerHTML =
-      '<h2>Stage B lab</h2><p class="role">10 nodes, about 3.5 GB RAM on the 15 GiB host</p>' +
-      '<table>' +
-      '<tr><td>Routing</td><td>OSPF area 0 in HQ and over the tunnel; eBGP to the ISP</td></tr>' +
-      '<tr><td>VPN</td><td>R2 ↔ BR1 IPsec VTI across ISP1</td></tr>' +
-      '<tr><td>Agent scope</td><td>allowed_networks = 10.99.0.0/24 only</td></tr>' +
-      '<tr><td>Test target</td><td>PC1 → www.lab.test (192.0.2.80)</td></tr>' +
-      '</table>' +
-      '<h3>Devices</h3>' + chips() +
-      '<p class="hint">Click a device in the scene or above for its interfaces and the faults the lab can inject there.</p>';
+    let h;
+    if (phase === '3') {
+      h = '<h2>Phase 3 · live lab <span class="tag plan" style="border-style:solid;color:var(--ok);border-color:var(--ok)">complete</span></h2>' +
+        '<p class="role">4 × Cisco 7200 (IOS 12.4) + PCs and a web server in GNS3, ~2.5 GB RAM</p>' +
+        '<table>' +
+        '<tr><td>Agent path</td><td>Ubuntu host 10.99.0.1 → MGMT-SW → each router’s Fa0/0 (VRF MGMT), SSH as rootvex</td></tr>' +
+        '<tr><td>Allowed</td><td class="ok">show ip ospf neighbor, show ip route, show interfaces …</td></tr>' +
+        '<tr><td>Denied</td><td class="bad">configure terminal, conf t, reload — before SSH, logged</td></tr>' +
+        '<tr><td>Live result</td><td>“Is OSPF healthy between R1 and R2?” → 7 real commands, R1–R2 and R2–BR1 FULL</td></tr>' +
+        '<tr><td>Routing</td><td>OSPF area 0 in HQ and over the tunnel; eBGP to the ISP; NAT on R2 and BR1</td></tr>' +
+        '</table>';
+    } else if (phase === '4') {
+      h = '<h2>Phase 4 · playbooks</h2><p class="role">Next: one playbook per fault, each proven against a fault planted in this lab</p><table>' +
+        faultPoints.map((f) => '<tr><td class="bad">' + f.n + ' · ' + esc(f.name) + '</td><td>' + esc(f.detail) + '</td></tr>').join('') +
+        '</table><p class="hint">Each finding must quote an exact line from that device’s output, and code checks the quote.</p>';
+    } else {
+      h = '<h2>Later</h2><p class="role">Shown dashed in the scene</p><table>' +
+        '<tr><td>FW1</td><td>FortiGate-VM between R2 and ISP1 (Stage C); needs the KVM build of FortiOS</td></tr>' +
+        '<tr><td>SW1</td><td>Managed IOSvL2 switch with a management link (CML-Personal image) — brings back the port-security fault</td></tr>' +
+        '<tr><td>Phases 5–9</td><td>Knowledge base, evaluation, API/UI, approved changes, packaging: no new lab devices</td></tr>' +
+        '</table>';
+    }
+    detail.innerHTML = h + '<h3>Devices</h3>' + chips() +
+      '<p class="hint">Click a device for its interfaces and the faults planned there.</p>';
   }
   function showNode(k) {
     const n = nodes[k];
@@ -447,7 +513,7 @@
     if (selected && nodes[selected]) nodes[selected].mesh.material.emissive.setHex(0x000000);
     selected = k;
     if (!k) { showOverview(); return; }
-    if (nodes[k].planned && !groups.planned.visible) toggle('t-plan', true);
+    if (nodes[k].planned && !groups.planned.visible) setPhase('later');
     if (nodes[k].zone === 'MGMT' && !groups.mgmt.visible) toggle('t-mgmt', true);
     nodes[k].mesh.material.emissive.setHex(0x1f4f55);
     showNode(k);
@@ -465,11 +531,24 @@
     btn.setAttribute('aria-pressed', on ? 'true' : 'false');
     if (id === 't-ip') labelLayer.classList.toggle('hide-ip', !on);
     if (id === 't-mgmt') { groups.mgmt.visible = on; labelLayer.classList.toggle('hide-mgmt', !on); }
-    if (id === 't-plan') { groups.planned.visible = on; labelLayer.classList.toggle('hide-planned', !on); }
     if (id === 't-anim') { animate = on; pulses.forEach((p) => (p.m.visible = on)); sshPulse.m.visible = on; }
   }
-  ['t-ip', 't-mgmt', 't-plan', 't-anim'].forEach((id) =>
+  ['t-ip', 't-mgmt', 't-anim'].forEach((id) =>
     document.getElementById(id).addEventListener('click', () => toggle(id)));
+
+  function setPhase(p) {
+    phase = p;
+    ['3', '4', 'later'].forEach((x) =>
+      document.getElementById('ph-' + x).setAttribute('aria-checked', x === p ? 'true' : 'false'));
+    groups.faults.visible = p === '4';
+    groups.planned.visible = p === 'later';
+    labelLayer.classList.toggle('hide-faults', p !== '4');
+    labelLayer.classList.toggle('hide-planned', p !== 'later');
+    if (selected) select(null); else showOverview();
+  }
+  ['3', '4', 'later'].forEach((x) =>
+    document.getElementById('ph-' + x).addEventListener('click', () => setPhase(x)));
+  labelLayer.classList.add('hide-faults');
   document.getElementById('t-reset').addEventListener('click', () => { resetView(); select(null); });
   labelLayer.classList.add('hide-planned');
   if (!animate) toggle('t-anim', false);
@@ -524,6 +603,10 @@
         sshPath = polyCurve(mgmtPaths[mgmtOf[sshPulse.idx]]);
       }
       sshPulse.m.position.copy(sshPath.getPointAt(Math.min(sshPulse.t, 0.999)));
+      if (groups.faults.visible) {
+        const k = 1 + 0.18 * Math.sin(now / 260);
+        faultRings.forEach((r) => r.scale.set(k, k, k));
+      }
     }
     renderer.render(scene, camera);
 
