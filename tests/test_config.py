@@ -31,3 +31,22 @@ def test_llm_limits_reach_the_client(monkeypatch):
     llm = build_llm(s.llm)
     assert llm.max_tokens == 2048
     assert llm.reasoning_effort == "none"
+
+
+def test_dotenv_values_reach_the_environment(tmp_path, monkeypatch):
+    from rootvex.config import export_dotenv
+
+    monkeypatch.delenv("LAB_TEST_PASSWORD", raising=False)
+    monkeypatch.setenv("LAB_ALREADY_SET", "from-shell")
+    env = tmp_path / ".env"
+    env.write_text(
+        "# comment\nLAB_TEST_PASSWORD='Lab-R0uter'\nLAB_ALREADY_SET=from-file\nexport LAB_X=1\n"
+    )
+    added = export_dotenv(env)
+    import os
+
+    assert os.environ["LAB_TEST_PASSWORD"] == "Lab-R0uter"
+    assert os.environ["LAB_ALREADY_SET"] == "from-shell"  # real env wins
+    assert "LAB_TEST_PASSWORD" in added and "LAB_ALREADY_SET" not in added
+    monkeypatch.delenv("LAB_TEST_PASSWORD")
+    monkeypatch.delenv("LAB_X")

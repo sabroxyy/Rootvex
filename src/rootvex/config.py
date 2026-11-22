@@ -94,5 +94,31 @@ class Settings(BaseSettings):
         return path if path.is_absolute() else PROJECT_ROOT / path
 
 
+def export_dotenv(path: Path | None = None) -> list[str]:
+    """Put .env values into os.environ so code that reads env vars directly sees them.
+
+    The settings model only reads ROOTVEX_* keys; device passwords are looked up by
+    name (e.g. LAB_DEVICE_PASSWORD) when connecting. Real environment variables win.
+    Returns the names that were added.
+    """
+    path = path or Path(os.environ.get("ROOTVEX_ENV_FILE", PROJECT_ROOT / ".env"))
+    added: list[str] = []
+    if not path.exists():
+        return added
+    for line in path.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, _, value = line.partition("=")
+        key, value = key.strip().removeprefix("export ").strip(), value.strip()
+        if len(value) >= 2 and value[0] == value[-1] and value[0] in "'\"":
+            value = value[1:-1]
+        if key and key not in os.environ:
+            os.environ[key] = value
+            added.append(key)
+    return added
+
+
 def load_settings(**overrides) -> Settings:
+    export_dotenv()
     return Settings(**overrides)
