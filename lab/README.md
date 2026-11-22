@@ -82,11 +82,14 @@ uv run python lab/build_gns3_lab.py --start
 
 The script reads the GUI's local-server login from
 `~/.config/GNS3/*/gns3_server.conf`. It creates three templates
-(`NetWarden c7200`, `NetWarden ipterm`, `NetWarden nginx`), the `netwarden-lab`
+(`Rootvex c7200`, `Rootvex ipterm`, `Rootvex nginx`), the `rootvex-lab`
 project, 11 nodes and 12 links, and loads every config. With `--start` it also
 computes an **Idle-PC** value for the 7200s; without one, each router uses a
 full CPU core. Run it again with `--rebuild` to start from scratch after
 editing `configs/`.
+
+Objects from before the rename (project `netwarden-lab`, templates `NetWarden …`)
+are removed with `uv run python lab/build_gns3_lab.py --remove-old`.
 
 RAM: about 2.5 GB with everything running (4 x 512 MB routers + containers).
 
@@ -95,7 +98,7 @@ RAM: about 2.5 GB with everything running (4 x 512 MB routers + containers).
 Give the routers 1 to 3 minutes to boot, then:
 
 ```bash
-ssh netwarden@10.99.0.11        # R1 (also .12 R2, .13 BR1, .14 ISP1)
+ssh rootvex@10.99.0.11        # R1 (also .12 R2, .13 BR1, .14 ISP1)
 ```
 
 On the routers:
@@ -125,7 +128,7 @@ uv run rootvex ask "Is OSPF healthy between R1 and R2?" --steps
 
 - Management sits in VRF `MGMT` on the `mgmt` port (Fa0/0 on the 7200). Breaking OSPF,
   BGP or the VPN never cuts the agent's SSH.
-- VTY lines accept SSH only, and only from 10.99.0.1 (`access-class NW-MGMT`).
+- VTY lines accept SSH only, and only from 10.99.0.1 (`access-class RV-MGMT`).
 - R1 uses a static default to R2. R2 and BR1 learn `192.0.2.0/24` (web, DNS)
   and each other's WAN /30 through eBGP with ISP1. The tunnel therefore
   depends on BGP, which makes "ISP link down" a realistic multi-symptom fault.

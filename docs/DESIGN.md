@@ -339,7 +339,7 @@ interface GigabitEthernet0/0
  vrf forwarding MGMT
  ip address 10.99.0.11 255.255.255.0
  no shutdown
-username netwarden privilege 15 secret <LAB-ONLY-PASSWORD>
+username rootvex privilege 15 secret <LAB-ONLY-PASSWORD>
 crypto key generate rsa modulus 2048
 ip ssh version 2
 line vty 0 4
@@ -381,7 +381,7 @@ internet or the home LAN.
 | 1 | GNS3 images | Only `c7200-advipservicesk9-mz.152-4.S5` was available; it crashes on Dynamips 0.2.25 (TLB exception at power-on, every setting tried). **Decision: IOSv + IOSvL2 from CML-Personal.** IOL needs an IOU licence; the FortiGate VM is kept for Stage C (needs the KVM build) |
 | 2 | Default model | **`granite4:3b`**. On the GTX 1060: 100% GPU, 42 tokens/s; found the OSPF area-mismatch test fault. `qwen3.5:4b` spends 3,000+ tokens "thinking" per step (~29 tok/s) and timed out |
 | 3 | Vector store | LanceDB, to confirm when Phase 5 starts |
-| 4 | Git flow | Small commits on a branch, merged into `main` after review. The project was renamed **NetWarden → Rootvex** on 22 Nov 2026 (package, CLI, `ROOTVEX_*` variables; lab device login and GNS3 names unchanged) |
+| 4 | Git flow | Small commits on a branch, merged into `main` after review. The project was renamed **NetWarden → Rootvex** on 22 Nov 2026 (package, CLI, `ROOTVEX_*` variables, lab device login `rootvex`, GNS3 project `rootvex-lab` and templates) |
 
 ### 11.2 Differences from the plan
 

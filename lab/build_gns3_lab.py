@@ -18,6 +18,7 @@ Usage (from the repo root, GNS3 GUI open so its server runs):
     uv run python lab/build_gns3_lab.py --start         # build, start, set Idle-PC
     uv run python lab/build_gns3_lab.py --rebuild       # delete the old project first
     uv run python lab/build_gns3_lab.py --idlepc        # set Idle-PC on the running lab
+    uv run python lab/build_gns3_lab.py --remove-old    # delete pre-rename GNS3 objects
 """
 
 from __future__ import annotations
@@ -270,6 +271,28 @@ def set_idlepc(api: GNS3, pid: str, nodes: dict, templates: dict, boot_wait: int
     print(f"  Tip: add LAB_C7200_IDLEPC={idle} to .env so future builds skip this step.")
 
 
+def remove_old(api: GNS3, old: dict) -> None:
+    """Delete GNS3 objects left from before the rename (exact names from topology.yaml)."""
+    projects = set(old.get("projects", []))
+    prefix = old.get("template_prefix")
+    removed = 0
+    for p in api.call("GET", "/projects"):
+        if p["name"] in projects:
+            if p["status"] != "opened":
+                api.call("POST", f"/projects/{p['project_id']}/open", {})
+            api.call("POST", f"/projects/{p['project_id']}/nodes/stop", {}, timeout=300)
+            api.call("DELETE", f"/projects/{p['project_id']}")
+            print(f"  deleted project {p['name']!r} (and its files)")
+            removed += 1
+    if prefix:
+        for t in api.call("GET", "/templates"):
+            if t["name"].startswith(prefix) and not t.get("builtin"):
+                api.call("DELETE", f"/templates/{t['template_id']}")
+                print(f"  deleted template {t['name']!r}")
+                removed += 1
+    print(f"Removed {removed} old GNS3 object(s)." if removed else "Nothing old left in GNS3.")
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
     ap.add_argument("--server", default=os.environ.get("GNS3_SERVER", "http://127.0.0.1:3080"))
@@ -280,6 +303,11 @@ def main() -> None:
     ap.add_argument("--start", action="store_true", help="start all nodes after building")
     ap.add_argument(
         "--idlepc", action="store_true", help="only set Idle-PC on the existing, running lab"
+    )
+    ap.add_argument(
+        "--remove-old",
+        action="store_true",
+        help="only delete the pre-rename GNS3 project(s) and templates listed in topology.yaml",
     )
     args = ap.parse_args()
 
@@ -292,6 +320,10 @@ def main() -> None:
 
     version = api.call("GET", "/version")["version"]
     print(f"GNS3 server {version} at {args.server}")
+
+    if args.remove_old:
+        remove_old(api, topo.get("old_names", {}))
+        return
 
     if args.idlepc:
         proj = next((p for p in api.call("GET", "/projects") if p["name"] == topo["project"]), None)
@@ -450,7 +482,7 @@ def main() -> None:
         set_idlepc(api, pid, nodes, templates, boot_wait=90)
 
     print(f"\nDone. Open project {project_name!r} in the GNS3 GUI.")
-    print("Then from the host:  ssh netwarden@10.99.0.11   (give the routers 1-3 minutes)")
+    print("Then from the host:  ssh rootvex@10.99.0.11   (give the routers 1-3 minutes)")
 
 
 if __name__ == "__main__":

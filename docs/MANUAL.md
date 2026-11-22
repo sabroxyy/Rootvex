@@ -223,7 +223,7 @@ maps them to real names, so the same configs run on any router image:
 
 **Design choices**
 - Management in its own VRF, so breaking OSPF/BGP/VPN never cuts the agent's SSH.
-- SSH only, and only from 10.99.0.1 (`access-class NW-MGMT`).
+- SSH only, and only from 10.99.0.1 (`access-class RV-MGMT`).
 - R1 → R2 static default; R2 and BR1 learn the web/DNS network and each
   other's WAN through eBGP, so the tunnel depends on BGP (realistic multi-symptom faults).
 - Secrets (`LAB_DEVICE_PASSWORD`, `LAB_VPN_PSK`) are filled in from `.env` at
@@ -258,11 +258,11 @@ uv run python lab/build_gns3_lab.py --rebuild --start
 ```
 
 The script reads the GUI's server login itself, checks images, creates
-templates, the `netwarden-lab` project, nodes, links and configs, then starts
+templates, the `rootvex-lab` project, nodes, links and configs, then starts
 everything. Give IOSv 2–4 minutes to boot, then:
 
 ```bash
-ping -c 3 10.99.0.11 && ssh netwarden@10.99.0.11
+ping -c 3 10.99.0.11 && ssh rootvex@10.99.0.11
 ```
 
 Expected on the routers: `show ip ospf neighbor` FULL between R1–R2 (and
@@ -387,7 +387,7 @@ uv run rootvex ask "OSPF between R1 and R2 is down" --fixtures --steps
 | 3 | Agent finds a real fault with a real model | ✅ |
 | 4 | GNS3 environment check has no FAIL lines | ✅ (images aside) |
 | 5 | Lab built and routers booted | ⏳ waiting for IOSv |
-| 6 | `ssh netwarden@10.99.0.11` works | ⏳ |
+| 6 | `ssh rootvex@10.99.0.11` works | ⏳ |
 | 7 | Agent runs real show commands on the lab | ⏳ |
 | 8 | Allowlist blocks `configure terminal` on a real router | ⏳ |
 
@@ -453,6 +453,9 @@ Toolkit), full docs, demo script.
 | `uv run rootvex ask "..." [--fixtures] [--steps]` | Troubleshoot; `--fixtures` uses recorded outputs, `--steps` prints every tool call |
 | `uv run python lab/build_gns3_lab.py [--rebuild] [--start]` | Build the GNS3 lab |
 | `bash lab/check_gpu.sh [--load]` / `bash lab/check_gns3_env.sh` | Health checks |
+| `uv run python lab/build_gns3_lab.py --remove-old` | Delete the pre-rename GNS3 project and `NetWarden …` templates |
+| `bash scripts/check_old_name.sh` | Find any leftover use of the old name on the workstation (read-only) |
+| `uv run scripts/build_pdfs.py` | Rebuild the PDFs from the Markdown |
 
 ### Asking good questions
 

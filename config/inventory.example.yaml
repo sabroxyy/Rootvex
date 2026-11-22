@@ -6,31 +6,31 @@ devices:
   R1:
     host: 10.99.0.11
     platform: cisco_ios        # Netmiko device_type
-    username: netwarden
+    username: rootvex
     password_env: LAB_DEVICE_PASSWORD
     timeout_s: 20
   R2:
     host: 10.99.0.12
     platform: cisco_ios
-    username: netwarden
+    username: rootvex
     password_env: LAB_DEVICE_PASSWORD
     timeout_s: 20
   BR1:
     host: 10.99.0.13
     platform: cisco_ios
-    username: netwarden
+    username: rootvex
     password_env: LAB_DEVICE_PASSWORD
     timeout_s: 20
   ISP1:
     host: 10.99.0.14
     platform: cisco_ios
-    username: netwarden
+    username: rootvex
     password_env: LAB_DEVICE_PASSWORD
     timeout_s: 20
   # SW1 is managed only with LAB_SWITCH_PLATFORM=iosvl2; then uncomment:
   # SW1:
   #   host: 10.99.0.21
   #   platform: cisco_ios        # IOSvL2
-  #   username: netwarden
+  #   username: rootvex
   #   password_env: LAB_DEVICE_PASSWORD
   #   timeout_s: 20

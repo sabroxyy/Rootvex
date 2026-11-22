@@ -2,7 +2,7 @@
 
 Creates a throwaway GNS3 project, boots ONE router per variant, reads its console
 for ~45 seconds, and reports whether IOS started or crashed (TLB exceptions).
-Nothing in the netwarden-lab project is touched. Stop the lab's routers first
+Nothing in the rootvex-lab project is touched. Stop the lab's routers first
 so they don't compete for CPU.
 
     uv run python lab/test_c7200.py            # stops at the first variant that boots
@@ -21,7 +21,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from build_gns3_lab import GNS3, gui_server_login, load_env  # noqa: E402
 
-PROJECT = "netwarden-c7200-test"
+PROJECT = "rootvex-c7200-test"
 BASE = {"platform": "c7200", "npe": "npe-400", "midplane": "vxr", "ram": 512}
 VARIANTS = [
     ("current (512 MB, sparsemem, mmap)", {"sparsemem": True, "mmap": True}),

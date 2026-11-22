@@ -72,9 +72,13 @@ Chosen: **NetWarden**. Alternatives considered: RootCause, ShowRun, Triage,
 NOCmate, Fixpoint, PacketSage, Netfix Agent.
 
 Renamed to **Rootvex** on 2026-11-22: Python package `rootvex`, CLI `rootvex`,
-environment variables `ROOTVEX_*`. Lab device usernames (`netwarden`) and the
-GNS3 project and template names (`netwarden-lab`, `NetWarden IOSv`, ...) are
-kept so the existing lab and its configs keep working.
+environment variables `ROOTVEX_*`, log files `logs/rootvex-*.jsonl`. A second
+pass the same day renamed what had been kept for the old lab, because that lab
+never booted: lab device login `rootvex` (was `netwarden`), GNS3 project
+`rootvex-lab` (was `netwarden-lab`), templates `Rootvex IOSv/IOSvL2/c7200/ipterm/nginx`
+(were `NetWarden …`), and router config names `RV-MGMT`, `RV-TS`, `RV-VTI` (were `NW-…`).
+Old GNS3 templates and the old project can be removed with
+`uv run python lab/build_gns3_lab.py --remove-old`.
 
 ## Sources
 

@@ -1,6 +1,6 @@
 hostname R1
 enable secret 9 $9$abcdefghijklmn$opqrstuvwxyz0123456789ABCDEF
-username netwarden privilege 15 secret 9 $9$zzzzzzzzzzzz$yyyyyyyyyyyyyyyyyyyyyyyy
+username rootvex privilege 15 secret 9 $9$zzzzzzzzzzzz$yyyyyyyyyyyyyyyyyyyyyyyy
 interface GigabitEthernet0/1
  ip address 10.0.12.1 255.255.255.252
  ip ospf authentication-key 7 0822455D0A16
