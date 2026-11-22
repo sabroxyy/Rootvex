@@ -112,11 +112,21 @@ turned off automatically. Re-enable from the Help menu now that the driver works
   3 crash messages. Never leave crashing Dynamips routers running.
 - Conclusion: this image does not run on this Dynamips build. Need another router image.
 
+## 12. GNS3 environment check (2026-11-22)
+
+`bash lab/check_gns3_env.sh`: KVM usable, user in ubridge/libvirt/kvm/wireshark/docker,
+GNS3 GUI and server 2.2.61, ubridge with cap_net_admin, dynamips 0.2.25, QEMU 10.2.1,
+mtools, Docker without sudo, GNS3 VM disabled, server on 127.0.0.1:3080 with auth.
+`tap-nw` created with nmcli (10.99.0.1/24). VirtualBox 7.2 also installed (unused).
+
 ## Next
 
-- [ ] Confirm `docker run hello-world` without sudo
+- [x] Confirm `docker run hello-world` without sudo
 - [x] Install Ollama; `ollama run granite4:3b`; check `ollama ps` shows GPU
-- [ ] NVIDIA Container Toolkit
-- [ ] Open WebUI
-- [ ] GNS3 lab with two Cisco routers (OSPF) for Phase 3
-- [ ] Start Claude Code with `docs/PROJECT_PROMPT.md`
+- [x] GNS3 environment healthy (`lab/check_gns3_env.sh`)
+- [x] Management interface `tap-nw`
+- [ ] **IOSv + IOSvL2 images from CML-Personal** → `~/GNS3/images/QEMU/`
+- [ ] Build the lab: `uv run python lab/build_gns3_lab.py --rebuild --start`
+- [ ] SSH to R1 (10.99.0.11) from the host; finish Phase 3 live-lab checks
+- [ ] NVIDIA Container Toolkit (Phase 9)
+- [ ] Open WebUI (Phase 7, optional)

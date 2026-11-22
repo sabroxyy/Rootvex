@@ -1,6 +1,10 @@
-# NetWarden design (Phase 0 proposal)
+# NetWarden design (Phase 0)
 
-Status: **draft for review**. Nothing here is built yet.
+**Version 2 — 22 November 2026.** Phase 0 is approved and Phases 1–2 are built;
+Phase 3 code is built and waits for IOSv images to finish its live-lab checks.
+Sections 1–10 are the original Phase 0 design, kept as the record of what was
+agreed. **Section 11 lists what changed during the build and answers the open
+questions.** Current status and how-to: [`MANUAL.md`](MANUAL.md).
 
 ## 1. Verified environment (2026-11-19)
 
@@ -358,7 +362,7 @@ nmcli connection up tap-nw
 In GNS3, bind the Cloud node to `tap-nw`. Devices get no route to the
 internet or the home LAN.
 
-## 10. Open questions for you
+## 10. Open questions (answered in section 11)
 
 1. GNS3 lab: which images do you have (IOSv, IOSvL2, IOL, versions)? Is the
    addressing plan in section 9 OK?
@@ -367,3 +371,45 @@ internet or the home LAN.
 3. Vector store: LanceDB (proposed) or Chroma?
 4. Git flow: commit straight to `main` per logical step, or one branch + PR
    per phase?
+
+## 11. Status and changes since Phase 0 (22 Nov 2026)
+
+### 11.1 Open questions, answered
+
+| # | Question | Answer |
+|---|---|---|
+| 1 | GNS3 images | Only `c7200-advipservicesk9-mz.152-4.S5` was available; it crashes on Dynamips 0.2.25 (TLB exception at power-on, every setting tried). **Decision: IOSv + IOSvL2 from CML-Personal.** IOL needs an IOU licence; the FortiGate VM is kept for Stage C (needs the KVM build) |
+| 2 | Default model | **`granite4:3b`**. On the GTX 1060: 100% GPU, 42 tokens/s; found the OSPF area-mismatch test fault. `qwen3.5:4b` spends 3,000+ tokens "thinking" per step (~29 tok/s) and timed out |
+| 3 | Vector store | LanceDB, to confirm when Phase 5 starts |
+| 4 | Git flow | Work on branch `claude/friendly-heisenberg-b8656r`, one commit per logical step; PR to `main` when Phase 3 is signed off |
+
+### 11.2 Differences from the plan
+
+| Area | Plan (sections 1–10) | Built |
+|---|---|---|
+| Logging module | `logging.py` | `log.py` (avoids confusion with Python's `logging`) |
+| Agent graph | understand → plan → collect → analyze → report | `plan → agent ⇄ tools → report` (understand/plan and analyze/report merged; fewer model calls for a small model) |
+| LLM limits | step limit, timeout | Also `max_tokens` per call (2048), `reasoning_effort`, request timeout 300 s |
+| Hallucination check | In the evaluation phase | Already in every report: evidence not backed by a command that ran is marked UNVERIFIED |
+| Fixtures | Tests only | `--fixtures` mode for demos without devices; interface-level commands answered from full recordings |
+| Lab build | Manual GNS3 build | `lab/` as code: `topology.yaml`, configs with logical ports, `build_gns3_lab.py` via the GNS3 API |
+| Router platform | IOSv | Configurable (`iosv` target; `c7200` tried); SW1 is IOSvL2 or GNS3's built-in switch |
+| Inventory | 5 devices | 4 routers; SW1 added when IOSvL2 is used |
+| Ollama | Native | Native as a systemd service (installer rerun); stays native until Phase 9 |
+| Health checks | — | `lab/check_gpu.sh`, `lab/check_gns3_env.sh`, `lab/test_c7200.py`, `lab/test_dynamips_direct.sh` |
+
+### 11.3 Dependency versions in use
+
+Checked on PyPI on 21 Nov 2026 and pinned in `pyproject.toml` / `uv.lock`:
+pydantic 2.14.4, pydantic-settings 2.16.3, pyyaml 6.0.4, structlog 26.1.0,
+typer 0.29.2, rich 15.0.0, langgraph 1.2.24, langchain-core 1.8.4,
+langchain-openai 1.8.5, netmiko 4.8.0; dev: pytest 9.2.0, ruff 0.17.6.
+Phase 5+ packages are added when those phases start.
+
+### 11.4 Risks seen in practice
+
+- **Small model gives up early** without structure → Phase 4 playbooks.
+- **Crash-looping emulated routers fill the disk** (~105 GB in hours) → test
+  scripts stop a router after 3 crash messages; never leave one running.
+- **Ollama on Pascal** depends on Ollama still shipping its CUDA 12 build →
+  check release notes before upgrading.
