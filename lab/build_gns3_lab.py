@@ -18,6 +18,7 @@ Usage (from the repo root, GNS3 GUI open so its server runs):
     uv run python lab/build_gns3_lab.py --start         # build, start, set Idle-PC
     uv run python lab/build_gns3_lab.py --rebuild       # delete the old project first
     uv run python lab/build_gns3_lab.py --idlepc        # set Idle-PC on the running lab
+    uv run python lab/build_gns3_lab.py --ssh           # create RSA keys so SSH works
     uv run python lab/build_gns3_lab.py --remove-old    # delete pre-rename GNS3 objects
 """
 
@@ -277,6 +278,24 @@ def set_idlepc(api: GNS3, pid: str, nodes: dict, templates: dict, boot_wait: int
     print(f"  Tip: add LAB_C7200_IDLEPC={idle} to .env so future builds skip this step.")
 
 
+def enable_ssh(nodes: dict, env: dict) -> None:
+    """IOS 12.4 does not create its RSA key from the startup config; do it on the console."""
+    from ios_console import ConsoleError, ensure_ssh
+
+    password = env.get("LAB_DEVICE_PASSWORD", "")
+    routers = [n for n in nodes.values() if n["node_type"] in ("dynamips", "qemu")]
+    print(f"Enabling SSH on {len(routers)} device(s) via their consoles (waits for boot)...")
+    for n in routers:
+        try:
+            result = ensure_ssh(n["console"], n["name"], password)
+            print(f"  {n['name']:<5} {result}")
+        except (ConsoleError, OSError) as exc:
+            print(f"  {n['name']:<5} FAILED: {exc}")
+            print(
+                "        On its console: conf t / crypto key generate rsa modulus 2048 / end / wr"
+            )
+
+
 def remove_old(api: GNS3, old: dict) -> None:
     """Delete GNS3 objects left from before the rename (exact names from topology.yaml).
 
@@ -329,6 +348,9 @@ def main() -> None:
         "--idlepc", action="store_true", help="only set Idle-PC on the existing, running lab"
     )
     ap.add_argument(
+        "--ssh", action="store_true", help="only enable SSH (RSA keys) on the running lab"
+    )
+    ap.add_argument(
         "--remove-old",
         action="store_true",
         help="only delete the pre-rename GNS3 project(s) and templates listed in topology.yaml",
@@ -347,6 +369,16 @@ def main() -> None:
 
     if args.remove_old:
         remove_old(api, topo.get("old_names", {}))
+        return
+
+    if args.ssh:
+        proj = next((p for p in api.call("GET", "/projects") if p["name"] == topo["project"]), None)
+        if not proj:
+            raise SystemExit(f"Project {topo['project']!r} not found. Build it first.")
+        if proj["status"] != "opened":
+            api.call("POST", f"/projects/{proj['project_id']}/open", {})
+        nodes = {n["name"]: n for n in api.call("GET", f"/projects/{proj['project_id']}/nodes")}
+        enable_ssh(nodes, env)
         return
 
     if args.idlepc:
@@ -505,6 +537,7 @@ def main() -> None:
         print("Starting all nodes...")
         api.call("POST", f"/projects/{pid}/nodes/start", {}, timeout=300)
         set_idlepc(api, pid, nodes, templates, boot_wait=90)
+        enable_ssh(nodes, env)
 
     print(f"\nDone. Open project {project_name!r} in the GNS3 GUI.")
     print("Then from the host:  ssh rootvex@10.99.0.11   (give the routers 1-3 minutes)")
