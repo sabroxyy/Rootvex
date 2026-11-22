@@ -104,7 +104,7 @@ def ask(
     except openai.APITimeoutError:  # subclass of APIConnectionError, so it must come first
         console.print(
             f"[red]The model did not answer within {s.llm.request_timeout_s}s.[/red] "
-            "Thinking models and first loads are slow; raise NETWARDEN_LLM__REQUEST_TIMEOUT_S "
+            "Thinking models and first loads are slow; raise ROOTVEX_LLM__REQUEST_TIMEOUT_S "
             "(e.g. 600) or try a smaller model."
         )
         raise typer.Exit(2) from None

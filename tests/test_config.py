@@ -24,9 +24,9 @@ def test_api_key_is_secret():
 
 
 def test_llm_limits_reach_the_client(monkeypatch):
-    from netwarden.llm import build_llm
+    from rootvex.llm import build_llm
 
-    monkeypatch.setenv("NETWARDEN_LLM__REASONING_EFFORT", "none")
+    monkeypatch.setenv("ROOTVEX_LLM__REASONING_EFFORT", "none")
     s = load_settings()
     llm = build_llm(s.llm)
     assert llm.max_tokens == 2048

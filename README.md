@@ -1,4 +1,4 @@
-# NetWarden
+# Rootvex
 
 A self-hosted, open-source AI agent that helps network and security engineers
 troubleshoot and configure network and security devices — built from scratch,
@@ -8,7 +8,7 @@ running locally, lab-first.
 > is built and tested with recorded outputs and a real model on the GPU; its
 > live-lab checks wait for IOSv images (CML-Personal). Next: Phase 4 playbooks.
 > Full status and how-to: [`docs/MANUAL.md`](docs/MANUAL.md)
-> ([PDF v2](docs/NetWarden-Manual-v2.pdf)).
+> ([PDF v2](docs/Rootvex-Manual-v2.pdf)).
 
 ## Quick start
 
@@ -24,18 +24,18 @@ cp config/inventory.example.yaml config/inventory.local.yaml
 ollama pull granite4:3b
 
 # 4. Use it
-uv run netwarden config                                # effective settings
-uv run netwarden devices                               # lab inventory
-uv run netwarden check R1 "show ip ospf neighbor"      # allowlist dry-run
-uv run netwarden ask "OSPF between R1 and R2 is down" --fixtures   # no lab needed
-uv run netwarden ask "OSPF between R1 and R2 is down"              # real GNS3 lab
+uv run rootvex config                                # effective settings
+uv run rootvex devices                               # lab inventory
+uv run rootvex check R1 "show ip ospf neighbor"      # allowlist dry-run
+uv run rootvex ask "OSPF between R1 and R2 is down" --fixtures   # no lab needed
+uv run rootvex ask "OSPF between R1 and R2 is down"              # real GNS3 lab
 
 # Tests and lint
 uv run pytest
 uv run ruff check .
 ```
 
-Audit logs go to `logs/netwarden-YYYYMMDD.jsonl` (secrets redacted).
+Audit logs go to `logs/rootvex-YYYYMMDD.jsonl` (secrets redacted).
 
 ## Goals
 
@@ -76,9 +76,9 @@ Apache License 2.0 — see [`LICENSE`](LICENSE).
 
 | Document | PDF |
 |---|---|
-| [`docs/MANUAL.md`](docs/MANUAL.md) — status, how it works, workstation and lab, every phase, problems solved | [v2](docs/NetWarden-Manual-v2.pdf) · [v1](docs/NetWarden-Manual.pdf) |
-| [`docs/DESIGN.md`](docs/DESIGN.md) — Phase 0 design + section 11: status and changes | [v2](docs/NetWarden-Design-v2.pdf) · [v1](docs/PHASE0_DESIGN.pdf) |
-| [`docs/SETUP_LOG.md`](docs/SETUP_LOG.md) — workstation setup, GPU, Ollama, GNS3, incidents | [v2](docs/NetWarden-SetupLog-v2.pdf) |
+| [`docs/MANUAL.md`](docs/MANUAL.md) — status, how it works, workstation and lab, every phase, problems solved | [v2](docs/Rootvex-Manual-v2.pdf) · [v1](docs/Rootvex-Manual.pdf) |
+| [`docs/DESIGN.md`](docs/DESIGN.md) — Phase 0 design + section 11: status and changes | [v2](docs/Rootvex-Design-v2.pdf) · [v1](docs/PHASE0_DESIGN.pdf) |
+| [`docs/SETUP_LOG.md`](docs/SETUP_LOG.md) — workstation setup, GPU, Ollama, GNS3, incidents | [v2](docs/Rootvex-SetupLog-v2.pdf) |
 | [`docs/DECISIONS.md`](docs/DECISIONS.md) — hardware, models, cloud, tooling decisions | — |
 | [`docs/PROJECT_PROMPT.md`](docs/PROJECT_PROMPT.md) — build brief for Claude Code | — |
 | [`lab/README.md`](lab/README.md) — GNS3 lab as code | — |

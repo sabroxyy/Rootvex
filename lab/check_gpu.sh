@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# GPU health check for NetWarden (GTX 1060 6 GB, NVIDIA driver 580). No sudo needed.
+# GPU health check for Rootvex (GTX 1060 6 GB, NVIDIA driver 580). No sudo needed.
 #
 #   bash lab/check_gpu.sh | tee gpu-check.txt          # quick, read-only checks
 #   bash lab/check_gpu.sh --load | tee gpu-check.txt   # + real model run on the GPU via Ollama
@@ -16,7 +16,7 @@ info() { printf '      %s\n' "$*"; }
 section() { printf '\n== %s ==\n' "$*"; }
 have() { command -v "$1" >/dev/null 2>&1; }
 LOAD=0; [ "${1:-}" = "--load" ] && LOAD=1
-MODEL="${NETWARDEN_GPU_TEST_MODEL:-granite4:3b}"
+MODEL="${ROOTVEX_GPU_TEST_MODEL:-granite4:3b}"
 q() { nvidia-smi --query-gpu="$1" --format=csv,noheader,nounits 2>/dev/null | head -1 | xargs; }
 
 section "PCI device"

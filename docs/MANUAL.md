@@ -1,8 +1,8 @@
-# NetWarden Manual
+# Rootvex Manual
 
 **Version 2 — status as of 22 November 2026**
 
-A step-by-step guide to building, running, and growing NetWarden: a
+A step-by-step guide to building, running, and growing Rootvex: a
 self-hosted AI agent that helps network and security engineers troubleshoot
 lab devices, using local open-weight models.
 
@@ -24,7 +24,7 @@ file names there may change.
 1. [Part 1 — The project](#part-1--the-project)
 2. [Part 2 — Workstation and lab](#part-2--workstation-and-lab)
 3. [Part 3 — Build phases](#part-3--build-phases)
-4. [Part 4 — Using and operating NetWarden](#part-4--using-and-operating-netwarden)
+4. [Part 4 — Using and operating Rootvex](#part-4--using-and-operating-rootvex)
 5. [Part 5 — Problems solved so far](#part-5--problems-solved-so-far)
 6. [Glossary](#glossary)
 
@@ -49,7 +49,7 @@ file names there may change.
 
 ### What works today
 
-- `netwarden ask "..."` runs the full agent on your GPU with `granite4:3b`
+- `rootvex ask "..."` runs the full agent on your GPU with `granite4:3b`
   (42 tokens/s, 100% GPU). Against recorded R1/R2 outputs it **correctly
   found an OSPF area mismatch** (R1 area 0, R2 area 1) with high confidence,
   citing only commands it really ran.
@@ -83,7 +83,7 @@ Cisco Modeling Labs – Personal (CML-Personal)**. The build already supports it
 
 | Item | Value |
 |---|---|
-| Repository | `github.com/sabroxyy/NetWarden` (private) |
+| Repository | `github.com/sabroxyy/Rootvex` (private) |
 | Working branch | `claude/friendly-heisenberg-b8656r` (no pull request yet) |
 | Local folder | `~/netwarden` on the workstation |
 
@@ -91,10 +91,10 @@ Cisco Modeling Labs – Personal (CML-Personal)**. The build already supports it
 
 ## Part 1 — The project
 
-### What NetWarden does
+### What Rootvex does
 
 You describe a problem in plain language — *"OSPF neighbor between R1 and R2
-is down"* — and NetWarden:
+is down"* — and Rootvex:
 
 1. **Plans** which read-only checks to run, on which devices.
 2. **Collects evidence** by running allowlisted commands on lab devices.
@@ -113,7 +113,7 @@ It never changes a device. Approved changes come only in Phase 8.
 ### How it works
 
 ```
- Engineer --question--> CLI (netwarden ask)
+ Engineer --question--> CLI (rootvex ask)
                           |
                           v
                  LangGraph agent:  plan -> agent <-> tools -> report
@@ -130,11 +130,11 @@ It never changes a device. Approved changes come only in Phase 8.
 | Component | Role | Code |
 |---|---|---|
 | **Ollama** | Runs the model locally; OpenAI-compatible API on port 11434 | — |
-| **Agent (LangGraph)** | Plan → collect evidence → report, with step and time limits | `src/netwarden/agent/` |
-| **Device tools** | `list_devices`, `run_show_command`; SSH via Netmiko | `src/netwarden/tools/`, `src/netwarden/devices/` |
+| **Agent (LangGraph)** | Plan → collect evidence → report, with step and time limits | `src/rootvex/agent/` |
+| **Device tools** | `list_devices`, `run_show_command`; SSH via Netmiko | `src/rootvex/tools/`, `src/rootvex/devices/` |
 | **Allowlist** | Regex list of read-only commands per platform | `config/allowlist/cisco_ios.yaml` |
 | **Inventory** | Lab devices by name; IPs must be inside `10.99.0.0/24` | `config/inventory.local.yaml` |
-| **Audit log** | Every step, with run id, timings and token counts | `logs/netwarden-YYYYMMDD.jsonl` |
+| **Audit log** | Every step, with run id, timings and token counts | `logs/rootvex-YYYYMMDD.jsonl` |
 | **Playbooks** *(Phase 4)* | Ordered checks for common problems | *(planned)* |
 | **Knowledge base** *(Phase 5)* | Docs and notes the agent can cite | *(planned)* |
 
@@ -299,9 +299,9 @@ dependency versions, GNS3 lab design (topology, addressing, faults).
 ### Phase 1 — Skeleton ✅
 
 **Built:** `uv` project pinned to Python 3.12 with pinned dependencies;
-`config/settings.yaml` with `.env` / `NETWARDEN_*` overrides
-(`src/netwarden/config.py`); JSON-lines audit log with run id and secret
-redaction (`src/netwarden/log.py`); Typer CLI; pytest + ruff; GitHub Actions CI.
+`config/settings.yaml` with `.env` / `ROOTVEX_*` overrides
+(`src/rootvex/config.py`); JSON-lines audit log with run id and secret
+redaction (`src/rootvex/log.py`); Typer CLI; pytest + ruff; GitHub Actions CI.
 
 **Test it**
 
@@ -314,7 +314,7 @@ uv run pytest && uv run ruff check .
 ```
 
 ```bash
-uv run netwarden config
+uv run rootvex config
 ```
 
 **Done:** ✅ fresh clone → tests pass · ✅ test proves secrets are redacted ·
@@ -324,7 +324,7 @@ uv run netwarden config
 
 ### Phase 2 — Agent loop ✅
 
-**Built** (`src/netwarden/agent/`):
+**Built** (`src/rootvex/agent/`):
 
 | Node | What it does |
 |---|---|
@@ -342,7 +342,7 @@ bigger model on a rented GPU is a config change only.
 **Test it**
 
 ```bash
-uv run netwarden ask "Why is OSPF down between R1 and R2?" --fake
+uv run rootvex ask "Why is OSPF down between R1 and R2?" --fake
 ```
 
 **Done:** ✅ agent calls a tool and uses the result · ✅ step limit and timeout
@@ -356,12 +356,12 @@ tested · ✅ model change is config-only.
 
 | Part | File |
 |---|---|
-| Inventory loader + lab-network check | `src/netwarden/devices/inventory.py` |
-| Allowlist (deny by default, ~50 IOS commands) | `src/netwarden/devices/allowlist.py`, `config/allowlist/cisco_ios.yaml` |
-| SSH runner (Netmiko, per-device timeouts) | `src/netwarden/devices/connection.py` |
+| Inventory loader + lab-network check | `src/rootvex/devices/inventory.py` |
+| Allowlist (deny by default, ~50 IOS commands) | `src/rootvex/devices/allowlist.py`, `config/allowlist/cisco_ios.yaml` |
+| SSH runner (Netmiko, per-device timeouts) | `src/rootvex/devices/connection.py` |
 | Fixture runner (recorded outputs, no devices) | same file; outputs in `tests/fixtures/cisco_ios/<DEVICE>/` |
-| Tools `list_devices`, `run_show_command` | `src/netwarden/tools/device_tools.py` |
-| CLI `devices`, `check`, `ask --fixtures` | `src/netwarden/cli.py` |
+| Tools `list_devices`, `run_show_command` | `src/rootvex/tools/device_tools.py` |
+| CLI `devices`, `check`, `ask --fixtures` | `src/rootvex/cli.py` |
 
 **Results so far**
 - All mocked tests pass (allowlist, inventory, tools, end-to-end agent).
@@ -371,11 +371,11 @@ tested · ✅ model change is config-only.
 **Test it**
 
 ```bash
-uv run netwarden check R1 "configure terminal" --fixtures     # must say DENIED
+uv run rootvex check R1 "configure terminal" --fixtures     # must say DENIED
 ```
 
 ```bash
-uv run netwarden ask "OSPF between R1 and R2 is down" --fixtures --steps
+uv run rootvex ask "OSPF between R1 and R2 is down" --fixtures --steps
 ```
 
 **Done when** (live lab part still open):
@@ -441,16 +441,16 @@ Toolkit), full docs, demo script.
 
 ---
 
-## Part 4 — Using and operating NetWarden
+## Part 4 — Using and operating Rootvex
 
 ### Commands
 
 | Command | What it does |
 |---|---|
-| `uv run netwarden config` | Show effective settings (secrets hidden) |
-| `uv run netwarden devices [--fixtures]` | List inventory devices (after the lab check) |
-| `uv run netwarden check R1 "show ip route"` | Allowlist dry-run; nothing is sent |
-| `uv run netwarden ask "..." [--fixtures] [--steps]` | Troubleshoot; `--fixtures` uses recorded outputs, `--steps` prints every tool call |
+| `uv run rootvex config` | Show effective settings (secrets hidden) |
+| `uv run rootvex devices [--fixtures]` | List inventory devices (after the lab check) |
+| `uv run rootvex check R1 "show ip route"` | Allowlist dry-run; nothing is sent |
+| `uv run rootvex ask "..." [--fixtures] [--steps]` | Troubleshoot; `--fixtures` uses recorded outputs, `--steps` prints every tool call |
 | `uv run python lab/build_gns3_lab.py [--rebuild] [--start]` | Build the GNS3 lab |
 | `bash lab/check_gpu.sh [--load]` / `bash lab/check_gns3_env.sh` | Health checks |
 
@@ -477,11 +477,11 @@ Always check the evidence yourself before acting on a proposed fix.
 ### Settings
 
 Edit `config/settings.yaml`, or override any key in `.env` / the environment
-with `NETWARDEN_<SECTION>__<KEY>`:
+with `ROOTVEX_<SECTION>__<KEY>`:
 
 | Setting | Default | Note |
 |---|---|---|
-| `llm.model` | `granite4:3b` | `NETWARDEN_LLM__MODEL=qwen3.5:4b` to compare |
+| `llm.model` | `granite4:3b` | `ROOTVEX_LLM__MODEL=qwen3.5:4b` to compare |
 | `llm.base_url` | `http://localhost:11434/v1` | Point at a rented GPU over a private tunnel, never the open internet |
 | `llm.request_timeout_s` | 300 | Per model call |
 | `llm.max_tokens` | 2048 | Per model call |
@@ -499,7 +499,7 @@ with `NETWARDEN_<SECTION>__<KEY>`:
 | Devices | `config/inventory.local.yaml` (copy of the example) | **no** |
 | Allowed commands | `config/allowlist/cisco_ios.yaml` | yes |
 | Recorded outputs | `tests/fixtures/cisco_ios/<DEVICE>/` | yes |
-| Audit logs | `logs/netwarden-YYYYMMDD.jsonl` | **no** |
+| Audit logs | `logs/rootvex-YYYYMMDD.jsonl` | **no** |
 | Lab definition | `lab/` | yes |
 | GNS3 projects / images | `~/GNS3/projects`, `~/GNS3/images` | **no** |
 | Models | `/usr/share/ollama/.ollama` (SSD) | **no** |
@@ -509,7 +509,7 @@ with `NETWARDEN_<SECTION>__<KEY>`:
 | Problem | Check / fix |
 |---|---|
 | "Cannot reach the model server" | `systemctl is-active ollama`; `curl http://127.0.0.1:11434/api/version` |
-| "The model did not answer within …s" | Thinking model or first load; raise `NETWARDEN_LLM__REQUEST_TIMEOUT_S`, or use `granite4:3b` |
+| "The model did not answer within …s" | Thinking model or first load; raise `ROOTVEX_LLM__REQUEST_TIMEOUT_S`, or use `granite4:3b` |
 | Model is slow | `ollama ps` — must say 100% GPU; otherwise use a smaller model |
 | Agent stops before finding the cause | Use `--steps` to see what it ran; Phase 4 playbooks fix this |
 | Command refused | Not on the allowlist, or abbreviated; use full words (`show running-config`) |
