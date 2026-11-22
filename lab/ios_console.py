@@ -51,6 +51,17 @@ class IOSConsole:
         tail = self.buf[-200:].replace("\r", "")
         raise ConsoleError(f"timeout waiting for {patterns} (last output: {tail!r})")
 
+    def run(self, command: str, mode: str = "#", timeout: float = 30) -> str:
+        """Send a command and return its output, waiting for its own echo then the prompt.
+
+        Waiting for the echo first stops a prompt left over from the previous
+        command from being taken as this command's end.
+        """
+        self.send(command)
+        echo_then_prompt = re.escape(command) + r"[\s\S]*?" + self.prompt(mode)
+        self.expect([echo_then_prompt], timeout)
+        return self.buf
+
     def prompt(self, mode: str = "#") -> str:
         return rf"{re.escape(self.hostname)}{re.escape(mode)}\s*$"
 
@@ -87,16 +98,15 @@ def ensure_ssh(
                 con.send(enable_password)
                 if con.expect([priv_p, r"Password:", r"% (Access denied|Bad secrets)"], 20):
                     raise ConsoleError(f"{hostname}: enable password rejected")
-        con.send("terminal length 0")
-        con.expect([priv_p], 20)
-        con.send("show ip ssh")
-        con.expect([priv_p], 30)
-        if "SSH Enabled" in con.buf:
+        con.run("terminal length 0", timeout=20)
+        if "SSH Enabled" in con.run("show ip ssh"):
             return "already enabled"
         con.send("configure terminal")
         con.expect([con.prompt("(config)#")], 20)
         con.send("crypto key generate rsa general-keys modulus 2048")
+        created = True
         if con.expect([con.prompt("(config)#"), r"replace them\? \[yes/no\]"], 600) == 1:
+            created = False  # a key already existed; keep it
             con.send("no")
             con.expect([con.prompt("(config)#")], 20)
         con.send("end")
@@ -104,10 +114,8 @@ def ensure_ssh(
         con.send("write memory")
         con.expect([r"\[OK\]", priv_p], 120)
         con.expect([priv_p], 60)
-        con.send("show ip ssh")
-        con.expect([priv_p], 30)
-        if "SSH Enabled" not in con.buf:
+        if "SSH Enabled" not in con.run("show ip ssh"):
             raise ConsoleError(f"{hostname}: key generated but SSH is still disabled")
-        return "key created"
+        return "key created" if created else "already enabled (key kept)"
     finally:
         con.close()
