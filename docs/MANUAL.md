@@ -1,6 +1,6 @@
 # Rootvex Manual
 
-**Version 2.1 — status as of 22 November 2026.** Rootvex was called NetWarden until 22 November 2026; the rename is complete.
+**Version 3 — status as of 23 November 2026: Phase 3 complete.** Rootvex was called NetWarden until 22 November 2026; the rename is complete.
 
 A step-by-step guide to building, running, and growing Rootvex: a
 self-hosted AI agent that helps network and security engineers troubleshoot
@@ -39,8 +39,8 @@ file names there may change.
 | 0 | Plan | ✅ Done — `docs/DESIGN.md` (+ PDF) |
 | 1 | Skeleton | ✅ Done — config, audit log, CLI, tests, CI |
 | 2 | Agent loop | ✅ Done — LangGraph agent, limits, structured report |
-| 3 | Read-only device tools | 🟡 Code done and tested; **waiting for IOSv images** to finish the live-lab checks |
-| 4 | Troubleshooting playbooks | ⬜ Next |
+| 3 | Read-only device tools | ✅ Done — tested on recorded outputs and on the live GNS3 lab |
+| 4 | Troubleshooting playbooks | ⬜ **Next** |
 | 5 | Knowledge base (RAG) | ⬜ Planned |
 | 6 | Evaluation | ⬜ Planned |
 | 7 | API and web UI | ⬜ Planned |
@@ -49,13 +49,19 @@ file names there may change.
 
 ### What works today
 
-- `rootvex ask "..."` runs the full agent on your GPU with `granite4:3b`
-  (42 tokens/s, 100% GPU). Against recorded R1/R2 outputs it **correctly
-  found an OSPF area mismatch** (R1 area 0, R2 area 1) with high confidence,
-  citing only commands it really ran.
+- **The live lab runs**: 4 Cisco 7200 routers (IOS 12.4(24)T5) in GNS3 with
+  OSPF, eBGP, NAT and an IPsec VTI tunnel, reachable over SSH on the
+  management network.
+- `rootvex ask "Is OSPF healthy between R1 and R2?"` SSHes into the real
+  routers, runs 7 read-only commands and correctly reports OSPF healthy
+  (R1–R2 FULL, R2–BR1 FULL over the tunnel).
+- Config commands (`configure terminal`, `conf t`, `reload`) are **denied before
+  they reach the router**, and every denial is in the audit log.
+- Against recorded outputs, `granite4:3b` found an OSPF area mismatch (R1 area 0,
+  R2 area 1) with high confidence.
 - Read-only device tools with a deny-by-default Cisco IOS allowlist, a lab-only
   inventory check, secret redaction, and untrusted-output wrapping.
-- 52 automated tests pass (`uv run pytest`), no devices or model needed.
+- 57 automated tests pass (`uv run pytest`), no devices or model needed.
 - The whole GNS3 lab is described as code (`lab/`) and builds with one command.
 - Health checks for the workstation: GPU (`lab/check_gpu.sh`) and GNS3
   (`lab/check_gns3_env.sh`).
@@ -63,12 +69,17 @@ file names there may change.
   folder `~/projects/rootvex`. `scripts/check_old_name.sh` confirms no old
   names are left on the workstation.
 
-### Where we paused
+### Known limitations (to fix in Phase 4)
 
-The lab's routers need a working image. The Cisco 7200 image you have
-(`c7200-advipservicesk9-mz.152-4.S5`) crashes on Dynamips 0.2.25 with every
-setting we tried (see Part 5). The decision is to use **IOSv + IOSvL2 from
-Cisco Modeling Labs – Personal (CML-Personal)**. The build already supports it.
+- **Findings can be mis-copied.** The check confirms each cited command really
+  ran, but not that the finding text matches that device's output. Seen live:
+  R2's Tunnel0 credited to R1, and R2's Gi1/0 given a wrong address.
+- **The small model reframes or skips steps.** Asked to run `configure terminal`,
+  it ran show commands instead; without a playbook it may stop early.
+- **SW1 is unmanaged** (GNS3's built-in switch); the port-security fault needs
+  an IOSvL2 image (CML-Personal, optional).
+- **IOS 12.4 needs old SSH algorithms** (SHA-1 key exchange, `ssh-rsa`); Rootvex
+  pins paramiko 4.0.0, and your own `ssh` needs the lab entry in `~/.ssh/config`.
 
 ### Rename to Rootvex ✅
 
@@ -83,19 +94,14 @@ Cisco Modeling Labs – Personal (CML-Personal)**. The build already supports it
 Only history lines still say "NetWarden" (the original name decision and the
 "renamed from" notes).
 
-### Next steps (in order)
+### Next steps (Phase 4)
 
-1. Get the CML-Personal reference platform ISO and copy two images to
-   `~/GNS3/images/QEMU/`:
-   - `vios-adventerprisek9-m.spa.159-3.m9.qcow2` (routers)
-   - `vios_l2-adventerprisek9-m.ssa.high_iron_20200929.qcow2` (switch)
-2. In `.env`: `LAB_ROUTER_PLATFORM=iosv` and `LAB_SWITCH_PLATFORM=iosvl2`.
-3. `cp config/inventory.example.yaml config/inventory.local.yaml` and uncomment SW1.
-4. `uv run python lab/build_gns3_lab.py --rebuild --start`, then
-   `ssh rootvex@10.99.0.11` (the device login is `rootvex`).
-5. Finish the Phase 3 checklist (SSH works, agent runs real commands, the
-   allowlist blocks a config command on a real router).
-6. Start Phase 4 (playbooks).
+1. Playbooks (YAML) for: interface down, OSPF neighbor down, BGP neighbor down,
+   IPsec VPN down, "user can't reach website".
+2. Each finding must quote an exact line from that device's output, checked in code.
+3. Plant each fault in the lab and prove the playbook finds it.
+4. Optional: IOSv + IOSvL2 (CML-Personal) for a managed SW1 —
+   `LAB_ROUTER_PLATFORM=iosv`, `LAB_SWITCH_PLATFORM=iosvl2`; configs don't change.
 
 ### Where the code lives
 
@@ -185,7 +191,7 @@ These rules are enforced in code, not only in prompts:
 | Docker without sudo | ✅ | |
 | GNS3 2.2.61 (GUI = server), KVM, ubridge, dynamips | ✅ | GNS3 VM disabled (not needed on Linux) |
 | Management interface `tap-nw` 10.99.0.1/24 | ✅ | Created with nmcli |
-| Router images | ❌ | c7200 image crashes; IOSv from CML-Personal needed |
+| Router images | ✅ | Cisco 7200 IOS 12.4(24)T5 (`c7200-adventerprisek9-mz.124-24.T5.image`, md5 verified); 15.2(4)S5 crashed |
 
 Full history: [`SETUP_LOG.md`](SETUP_LOG.md).
 
@@ -232,12 +238,12 @@ Stage B of the design: HQ, ISP and Branch, with out-of-band management.
 **Logical ports.** Router configs say `{{IF_MGMT}}`, `{{IF1}}`…; the platform
 maps them to real names, so the same configs run on any router image:
 
-| Logical | IOSv (target) | c7200 (failed) |
+| Logical | c7200 (in use) | IOSv (optional) |
 |---|---|---|
-| mgmt (VRF MGMT) | GigabitEthernet0/0 | FastEthernet0/0 |
-| if1 | GigabitEthernet0/1 | GigabitEthernet1/0 |
-| if2 | GigabitEthernet0/2 | GigabitEthernet2/0 |
-| if3 | GigabitEthernet0/3 | GigabitEthernet3/0 |
+| mgmt (VRF MGMT) | FastEthernet0/0 | GigabitEthernet0/0 |
+| if1 | GigabitEthernet1/0 | GigabitEthernet0/1 |
+| if2 | GigabitEthernet2/0 | GigabitEthernet0/2 |
+| if3 | GigabitEthernet3/0 | GigabitEthernet0/3 |
 
 **Design choices**
 - Management in its own VRF, so breaking OSPF/BGP/VPN never cuts the agent's SSH.
@@ -246,8 +252,10 @@ maps them to real names, so the same configs run on any router image:
   other's WAN through eBGP, so the tunnel depends on BGP (realistic multi-symptom faults).
 - Secrets (`LAB_DEVICE_PASSWORD`, `LAB_VPN_PSK`) are filled in from `.env` at
   build time and never stored in the repo.
+- Platform syntax is filled in too: the management VRF is `ip vrf MGMT` on the
+  7200 (IOS 12.4 has no `vrf definition`) and `vrf definition MGMT` on IOSv.
 
-### Build the lab (once IOSv images are in place)
+### Build the lab
 
 One-time host setup (already done on this workstation):
 
@@ -265,9 +273,12 @@ nmcli connection up tap-nw && sudo apt install -y mtools
 ```
 LAB_DEVICE_PASSWORD=...
 LAB_VPN_PSK=...
-LAB_ROUTER_PLATFORM=iosv
-LAB_SWITCH_PLATFORM=iosvl2
+LAB_ROUTER_PLATFORM=c7200
+LAB_C7200_IMAGE=c7200-adventerprisek9-mz.124-24.T5.image
 ```
+
+The image goes in `~/GNS3/images/IOS/`. Create the inventory once:
+`cp config/inventory.example.yaml config/inventory.local.yaml`.
 
 Open the GNS3 GUI (it starts the local server), then:
 
@@ -277,7 +288,9 @@ uv run python lab/build_gns3_lab.py --rebuild --start
 
 The script reads the GUI's server login itself, checks images, creates
 templates, the `rootvex-lab` project, nodes, links and configs, then starts
-everything. Give IOSv 2–4 minutes to boot, then:
+everything, sets an Idle-PC value (each router then uses ~7% CPU instead of a
+full core), and creates the routers' SSH keys on their consoles (IOS 12.4 will
+not do it from the startup config). It takes about 5 minutes. Then:
 
 ```bash
 ping -c 3 10.99.0.11 && ssh rootvex@10.99.0.11
@@ -287,7 +300,23 @@ Expected on the routers: `show ip ospf neighbor` FULL between R1–R2 (and
 R2–BR1 over Tunnel0), `show ip bgp summary` on ISP1 with both peers up,
 `show crypto ipsec sa` on R2 with packets counting.
 
-RAM: about 3 GB with everything running. Close Chrome first.
+RAM: about 2.5 GB with everything running. Close Chrome first.
+
+**Your own `ssh`** needs the old algorithms IOS 12.4 uses, for the lab network
+only. Add to `~/.ssh/config`:
+
+```
+Host 10.99.0.*
+    StrictHostKeyChecking no
+    UserKnownHostsFile /dev/null
+    KexAlgorithms +diffie-hellman-group14-sha1,diffie-hellman-group-exchange-sha1
+    HostKeyAlgorithms +ssh-rsa
+    PubkeyAcceptedAlgorithms +ssh-rsa
+    Ciphers +aes128-cbc,aes256-cbc
+```
+
+The first two lines stop "host key has changed" errors after each rebuild;
+use them only for this throwaway lab network.
 
 ---
 
@@ -307,7 +336,7 @@ dependency versions, GNS3 lab design (topology, addressing, faults).
 
 | Question | Decision |
 |---|---|
-| Router images | IOSv + IOSvL2 from CML-Personal (c7200 tried and failed) |
+| Router images | Cisco 7200, IOS 12.4(24)T5 (15.2(4)S5 crashed on Dynamips). IOSv + IOSvL2 optional later |
 | Default model | `granite4:3b`: correct on the OSPF test; `qwen3.5:4b` too slow ("thinking") |
 | Vector store | LanceDB (to confirm in Phase 5) |
 | Git flow | Small commits on a branch, merged into `main` after review |
@@ -368,7 +397,7 @@ tested · ✅ model change is config-only.
 
 ---
 
-### Phase 3 — Read-only device tools 🟡
+### Phase 3 — Read-only device tools ✅
 
 **Built**
 
@@ -380,11 +409,18 @@ tested · ✅ model change is config-only.
 | Fixture runner (recorded outputs, no devices) | same file; outputs in `tests/fixtures/cisco_ios/<DEVICE>/` |
 | Tools `list_devices`, `run_show_command` | `src/rootvex/tools/device_tools.py` |
 | CLI `devices`, `check`, `ask --fixtures` | `src/rootvex/cli.py` |
+| Lab SSH set-up (RSA keys on the console) | `lab/ios_console.py`, `build_gns3_lab.py --ssh` |
 
-**Results so far**
-- All mocked tests pass (allowlist, inventory, tools, end-to-end agent).
-- Real model on your GPU, recorded outputs: `granite4:3b` found the OSPF
-  area mismatch (11 steps, high confidence, evidence verified).
+**Results**
+- 57 tests pass (allowlist, inventory, tools, console helper, end-to-end agent).
+- Recorded outputs: `granite4:3b` found the OSPF area mismatch (11 steps, high
+  confidence, evidence verified).
+- **Live lab:** `rootvex ask "Is OSPF healthy between R1 and R2?"` ran 7 real
+  commands over SSH and reported OSPF healthy (R1–R2 FULL, R2–BR1 FULL over
+  Tunnel0); the model never changed anything.
+- **Live deny test:** `configure terminal`, `conf t` and `reload` sent through the
+  tool to R1 were all DENIED before SSH and logged as `command_denied`; an
+  allowed `show ip interface brief | include 1/0` returned real output.
 
 **Test it**
 
@@ -396,18 +432,22 @@ uv run rootvex check R1 "configure terminal" --fixtures     # must say DENIED
 uv run rootvex ask "OSPF between R1 and R2 is down" --fixtures --steps
 ```
 
-**Done when** (live lab part still open):
+```bash
+uv run rootvex ask "Is OSPF healthy between R1 and R2?" --steps     # live lab
+```
+
+**Done when** — all met on 23 Nov 2026:
 
 | # | Check | Status |
 |---|---|---|
 | 1 | Tools, allowlist, inventory built | ✅ |
 | 2 | Mocked tests pass | ✅ |
 | 3 | Agent finds a real fault with a real model | ✅ |
-| 4 | GNS3 environment check has no FAIL lines | ✅ (images aside) |
-| 5 | Lab built and routers booted | ⏳ waiting for IOSv |
-| 6 | `ssh rootvex@10.99.0.11` works | ⏳ |
-| 7 | Agent runs real show commands on the lab | ⏳ |
-| 8 | Allowlist blocks `configure terminal` on a real router | ⏳ |
+| 4 | GNS3 environment check has no FAIL lines | ✅ |
+| 5 | Lab built and routers booted | ✅ c7200 IOS 12.4(24)T5 |
+| 6 | `ssh rootvex@10.99.0.11` works | ✅ SSH 2.0 |
+| 7 | Agent runs real show commands on the lab | ✅ 7 commands, correct verdict |
+| 8 | Allowlist blocks `configure terminal` on a real router | ✅ denied and logged |
 
 ---
 
@@ -424,6 +464,10 @@ neighbors" and stopped.
 | BGP neighbor down | Peer reachability, AS numbers, update-source, ACLs | Wrong remote-as or neighbor IP, ACL on TCP 179 |
 | IPsec VPN down | IKE/IPsec SA, proposals, PSK, peer reachability | PSK or transform-set mismatch, ISP link down |
 | User can't reach website | DNS, gateway, routing, NAT, ACL | Wrong PC gateway, NAT missing, DNS entry missing |
+
+**Also in Phase 4** (from the Phase 3 live runs): each finding must quote an
+exact line from that device's output, and code checks the quote — the live run
+credited R2's Tunnel0 to R1.
 
 **Done when:** each playbook finds its planted fault in the lab and cites the proof.
 
@@ -471,6 +515,7 @@ Toolkit), full docs, demo script.
 | `uv run rootvex ask "..." [--fixtures] [--steps]` | Troubleshoot; `--fixtures` uses recorded outputs, `--steps` prints every tool call |
 | `uv run python lab/build_gns3_lab.py [--rebuild] [--start]` | Build the GNS3 lab |
 | `bash lab/check_gpu.sh [--load]` / `bash lab/check_gns3_env.sh` | Health checks |
+| `uv run python lab/build_gns3_lab.py --ssh` | Create missing SSH keys on the running lab's routers |
 | `uv run python lab/build_gns3_lab.py --remove-old` | Delete the pre-rename GNS3 project and `NetWarden …` templates |
 | `bash scripts/check_old_name.sh` | Find any leftover use of the old name on the workstation (read-only) |
 | `uv run scripts/build_pdfs.py` | Rebuild the PDFs from the Markdown |
@@ -575,6 +620,12 @@ uv sync && uv run pytest
 | 10 | Two copies of the code diverged | Rename done in `~/projects/rootvex` while new work went on in `~/netwarden` | One merge onto the renamed `main` (git carried the code into `src/rootvex/`), then the same rename on the new content; 52 tests pass |
 | 11 | GNS3 could not delete the old c7200 project | Docker had created files owned by root inside it | `sudo rm -rf <project>/project-files/docker`; `--remove-old` now keeps going and prints that command |
 | 12 | Name check reported itself | The checker's own search patterns contain the old name | The script skips its own file |
+| 13 | IOS 12.4 rejected the management VRF | 12.4 has no `vrf definition` (IOS 15 syntax) | VRF lines are filled per platform: `ip vrf` on the 7200 |
+| 14 | SSH refused on port 22 | IOS 12.4 does not run `crypto key generate` from the startup config | Build creates the RSA keys on each console (`--ssh`) |
+| 15 | "No matching key exchange method" | IOS 12.4 only offers SHA-1 key exchange and `ssh-rsa`; OpenSSH and paramiko 5 refuse them | `~/.ssh/config` entry for 10.99.0.*; paramiko pinned to 4.0.0 |
+| 16 | "LAB_DEVICE_PASSWORD is not set" | Only `ROOTVEX_*` keys were read from `.env` | `.env` values are exported to the environment at start-up |
+| 17 | R1 reported "key created" when it had a key | A stale console prompt was read as the end of `show ip ssh` | Helper waits for each command's echo; key kept, reported correctly |
+| 18 | "Host identification has changed" | Each rebuild gives routers new SSH keys | Lab-only `StrictHostKeyChecking no` / `UserKnownHostsFile /dev/null` |
 
 Lessons:
 - Never leave a crash-looping Dynamips router running.
@@ -582,6 +633,8 @@ Lessons:
 - Test the lab build against a real GNS3 server before using it — the dry run
   caught the IOSv port-name bug before it reached the workstation.
 - Keep one working copy. Two folders for one project led to diverged history.
+- Old IOS needs old crypto: plan client settings (OpenSSH, paramiko) up front.
+- "Confirmed it ran" is not "confirmed it's true": findings need quoting.
 
 ---
 

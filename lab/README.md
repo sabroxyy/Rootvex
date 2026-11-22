@@ -21,8 +21,14 @@ work in PNETLab too (see the end of this page).
 
 ## Router platform
 
-Routers run as **Cisco 7200 (Dynamips)** with `c7200-advipservicesk9-mz.152-4.S5.image`
-(IOS 15.2: OSPF, BGP, NAT, IPsec). No licence key is needed in GNS3.
+Routers run as **Cisco 7200 (Dynamips)** with **`c7200-adventerprisek9-mz.124-24.T5.image`**
+(IOS 12.4(24)T5: OSPF, BGP, NAT, IPsec; md5 `6b89d0d804e1f2bb5b8bda66b5692047`).
+This is the working lab image. No licence key is needed in GNS3.
+
+```
+LAB_ROUTER_PLATFORM=c7200
+LAB_C7200_IMAGE=c7200-adventerprisek9-mz.124-24.T5.image
+```
 
 | Logical port | c7200 | IOSv |
 |---|---|---|
@@ -31,13 +37,11 @@ Routers run as **Cisco 7200 (Dynamips)** with `c7200-advipservicesk9-mz.152-4.S5
 | `if2` | GigabitEthernet2/0 | GigabitEthernet0/2 |
 | `if3` | GigabitEthernet3/0 | GigabitEthernet0/3 |
 
-**c7200 12.4(24)T5** (`c7200-adventerprisek9-mz.124-24.T5`) is the next image to try:
-set `LAB_C7200_IMAGE` to its file name and keep `LAB_ROUTER_PLATFORM=c7200`. The
-management VRF uses `ip vrf` syntax on this platform, which IOS 12.4 needs.
+The management VRF uses `ip vrf` syntax on this platform (IOS 12.4 has no
+`vrf definition`). The older `c7200-advipservicesk9-mz.152-4.S5` image does
+**not** boot on Dynamips 0.2.25 (TLB exception loop, `docs/SETUP_LOG.md` section 11).
 
-**The c7200 15.2(4)S5 image does not boot on Dynamips 0.2.25** (TLB exception
-loop, see `docs/SETUP_LOG.md` section 11). The lab therefore moves to **IOSv**
-from CML-Personal:
+**Optional: IOSv + IOSvL2** from CML-Personal give a managed SW1:
 
 ```
 LAB_ROUTER_PLATFORM=iosv

@@ -1,7 +1,7 @@
 # Rootvex design (Phase 0)
 
-**Version 2.1 — 22 November 2026** (renamed from NetWarden the same day; rename complete, one codebase). Phase 0 is approved and Phases 1–2 are built;
-Phase 3 code is built and waits for IOSv images to finish its live-lab checks.
+**Version 3 — 23 November 2026** (renamed from NetWarden on 22 November). Phases 0–3 are complete;
+the live GNS3 lab runs and Phase 4 (playbooks) is next.
 Sections 1–10 are the original Phase 0 design, kept as the record of what was
 agreed. **Section 11 lists what changed during the build and answers the open
 questions.** Current status and how-to: [`MANUAL.md`](MANUAL.md).
@@ -378,7 +378,7 @@ internet or the home LAN.
 
 | # | Question | Answer |
 |---|---|---|
-| 1 | GNS3 images | Only `c7200-advipservicesk9-mz.152-4.S5` was available; it crashes on Dynamips 0.2.25 (TLB exception at power-on, every setting tried). **Decision: IOSv + IOSvL2 from CML-Personal.** IOL needs an IOU licence; the FortiGate VM is kept for Stage C (needs the KVM build) |
+| 1 | GNS3 images | Only `c7200-advipservicesk9-mz.152-4.S5` was available; it crashes on Dynamips 0.2.25 (TLB exception at power-on, every setting tried). **In use: `c7200-adventerprisek9-mz.124-24.T5`** (IOS 12.4(24)T5), which boots cleanly. IOSv + IOSvL2 (CML-Personal) stay optional for a managed SW1. IOL needs an IOU licence; the FortiGate VM is kept for Stage C (needs the KVM build) |
 | 2 | Default model | **`granite4:3b`**. On the GTX 1060: 100% GPU, 42 tokens/s; found the OSPF area-mismatch test fault. `qwen3.5:4b` spends 3,000+ tokens "thinking" per step (~29 tok/s) and timed out |
 | 3 | Vector store | LanceDB, to confirm when Phase 5 starts |
 | 4 | Git flow | Small commits on a branch, merged into `main` after review. The project was renamed **NetWarden → Rootvex** on 22 Nov 2026 (package, CLI, `ROOTVEX_*` variables, lab device login `rootvex`, GNS3 project `rootvex-lab` and templates) |
@@ -393,7 +393,11 @@ internet or the home LAN.
 | Hallucination check | In the evaluation phase | Already in every report: evidence not backed by a command that ran is marked UNVERIFIED |
 | Fixtures | Tests only | `--fixtures` mode for demos without devices; interface-level commands answered from full recordings |
 | Lab build | Manual GNS3 build | `lab/` as code: `topology.yaml`, configs with logical ports, `build_gns3_lab.py` via the GNS3 API |
-| Router platform | IOSv | Configurable (`iosv` target; `c7200` tried); SW1 is IOSvL2 or GNS3's built-in switch |
+| Router platform | IOSv | Configurable; **c7200 IOS 12.4 in use**, `iosv` optional; SW1 is IOSvL2 or GNS3's built-in switch |
+| Platform syntax | — | Configs also use `{{MGMT_VRF}}` / `{{MGMT_VRF_FWD}}`: `ip vrf` on c7200, `vrf definition` on IOSv |
+| SSH on IOS 12.4 | Key in startup config | IOS 12.4 ignores it; the build creates RSA keys on each console (`lab/ios_console.py`, `--ssh`) |
+| SSH library | netmiko default | paramiko pinned to 4.0.0: paramiko 5 removed SHA-1 key exchange and `ssh-rsa`, all classic IOS offers |
+| `.env` | `ROOTVEX_*` via pydantic-settings | All `.env` values exported at start-up so device passwords (`LAB_*`) are found |
 | Inventory | 5 devices | 4 routers; SW1 added when IOSvL2 is used |
 | Ollama | Native | Native as a systemd service (installer rerun); stays native until Phase 9 |
 | Health checks | — | `lab/check_gpu.sh`, `lab/check_gns3_env.sh`, `lab/test_c7200.py`, `lab/test_dynamips_direct.sh` |
@@ -414,7 +418,15 @@ project (`rootvex-lab`), the templates (`Rootvex …`) and the router config nam
 repository (`sabroxyy/Rootvex`, branch `main`). `scripts/check_old_name.sh`
 checks the workstation for leftovers.
 
-### 11.5 Risks seen in practice
+### 11.5 Phase 3 result (23 Nov 2026)
+
+On the live lab, `rootvex ask` ran real read-only commands over SSH and
+reported OSPF healthy (R1–R2 and R2–BR1 FULL); config commands sent through
+the tool were denied before SSH and logged. Known limitation carried into
+Phase 4: findings are checked for "command really ran" but not yet for "text
+matches that device's output" (one run credited R2's Tunnel0 to R1).
+
+### 11.6 Risks seen in practice
 
 - **Small model gives up early** without structure → Phase 4 playbooks.
 - **Crash-looping emulated routers fill the disk** (~105 GB in hours) → test

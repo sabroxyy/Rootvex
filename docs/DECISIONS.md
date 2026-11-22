@@ -52,11 +52,14 @@ Notes:
 Plan: build daily on the local PC; rent ~20 GPU hours/month for big models
 and fine-tuning (~EGP 465/month on L4 Spot at $1 = EGP 55).
 
-## Lab router images (updated Nov 22)
+## Lab router images (updated Nov 23)
 
 - `c7200-advipservicesk9-mz.152-4.S5` does **not** boot on Dynamips 0.2.25 (TLB exception).
-- Chosen: **IOSv + IOSvL2 from CML-Personal** (`vios-adventerprisek9-m.spa.159-3.m9`,
-  `vios_l2-adventerprisek9-m.ssa.high_iron_20200929`).
+- **In use: `c7200-adventerprisek9-mz.124-24.T5`** (IOS 12.4(24)T5): boots cleanly,
+  ~7% CPU per router with Idle-PC. Needs `ip vrf` syntax, RSA keys created on the
+  console, and SHA-1 SSH algorithms (paramiko pinned to 4.0.0).
+- Optional later: **IOSv + IOSvL2 from CML-Personal** (`vios-adventerprisek9-m.spa.159-3.m9`,
+  `vios_l2-adventerprisek9-m.ssa.high_iron_20200929`) for a managed SW1.
 - IOL L3 15.7 needs an IOU licence; FortiGate 7.0.5 is for Stage C (use the KVM build).
 
 ## Software stack

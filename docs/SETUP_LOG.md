@@ -133,6 +133,24 @@ mtools, Docker without sudo, GNS3 VM disabled, server on 127.0.0.1:3080 with aut
 - `bash scripts/check_old_name.sh`: "No old names left that need action".
   Kept on purpose: old Claude Code chat history under `~/.claude/projects/`.
 
+## 14. Live lab up, Phase 3 complete (2026-11-22/23)
+
+- Image `c7200-adventerprisek9-mz.124-24.T5.image` (98 MB, md5
+  `6b89d0d804e1f2bb5b8bda66b5692047` matches) in `~/GNS3/images/IOS/`.
+  `lab/test_c7200.py`: BOOTS with default settings.
+- `uv run python lab/build_gns3_lab.py --rebuild --start`: project `rootvex-lab`,
+  Idle-PC set (routers ~7% CPU each), 0 crash messages.
+- SSH: IOS 12.4 did not create its RSA key from the startup config → keys now
+  created on the consoles (`--ssh`). OpenSSH refused IOS 12.4's SHA-1 key exchange
+  → `~/.ssh/config` entry for `10.99.0.*`. paramiko 5 had removed those
+  algorithms → pinned paramiko 4.0.0. Rebuilds change host keys → lab-only
+  `StrictHostKeyChecking no` / `UserKnownHostsFile /dev/null`.
+- `.env` values were not reaching the SSH runner → exported at start-up.
+- Results: `ssh rootvex@10.99.0.11` → `SSH Enabled - version 2.0`;
+  `rootvex ask "Is OSPF healthy between R1 and R2?"` → real output, OSPF healthy
+  (R1–R2 FULL, R2–BR1 FULL over Tunnel0); `configure terminal`, `conf t`,
+  `reload` → DENIED and logged.
+
 ## Next
 
 - [x] Confirm `docker run hello-world` without sudo
@@ -144,9 +162,10 @@ mtools, Docker without sudo, GNS3 VM disabled, server on 127.0.0.1:3080 with aut
 - [x] Check the workstation for the old name: `bash scripts/check_old_name.sh`
 - [x] Remove the old GNS3 project and templates: `uv run python lab/build_gns3_lab.py --remove-old`
 - [x] Retire `~/netwarden`
-- [ ] **IOSv + IOSvL2 images from CML-Personal** → `~/GNS3/images/QEMU/`
-- [ ] `cp config/inventory.example.yaml config/inventory.local.yaml` (uncomment SW1)
-- [ ] Build the lab: `uv run python lab/build_gns3_lab.py --rebuild --start`
-- [ ] `ssh rootvex@10.99.0.11` from the host; finish Phase 3 live-lab checks
+- [x] Router image: c7200 IOS 12.4(24)T5 in `~/GNS3/images/IOS/`
+- [x] `cp config/inventory.example.yaml config/inventory.local.yaml`
+- [x] Build the lab: `uv run python lab/build_gns3_lab.py --rebuild --start`
+- [x] `ssh rootvex@10.99.0.11` from the host; Phase 3 live-lab checks passed
+- [ ] Optional: IOSv + IOSvL2 (CML-Personal) for a managed SW1
 - [ ] NVIDIA Container Toolkit (Phase 9)
 - [ ] Open WebUI (Phase 7, optional)

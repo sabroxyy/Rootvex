@@ -4,9 +4,10 @@ A self-hosted, open-source AI agent that helps network and security engineers
 troubleshoot and configure network and security devices — built from scratch,
 running locally, lab-first.
 
-> **Status (22 Nov 2026):** Renamed from NetWarden (complete). Phases 0–2 done. Phase 3 (read-only device tools)
-> is built and tested with recorded outputs and a real model on the GPU; its
-> live-lab checks wait for IOSv images (CML-Personal). Next: Phase 4 playbooks.
+> **Status (23 Nov 2026):** Phases 0–3 complete. The live GNS3 lab (4 Cisco 7200
+> routers, IOS 12.4) runs, and `rootvex ask` troubleshoots it over SSH with
+> read-only commands; config commands are denied before they reach a device.
+> Next: Phase 4 playbooks. (Renamed from NetWarden on 22 Nov 2026.)
 > Full status and how-to: [`docs/MANUAL.md`](docs/MANUAL.md)
 > ([PDF](docs/Rootvex-Manual.pdf)).
 
