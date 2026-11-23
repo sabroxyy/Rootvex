@@ -83,6 +83,6 @@ Apache License 2.0 — see [`LICENSE`](LICENSE).
 | [`docs/DECISIONS.md`](docs/DECISIONS.md) — hardware, models, cloud, tooling decisions, the rename | — |
 | [`docs/PROJECT_PROMPT.md`](docs/PROJECT_PROMPT.md) — build brief for Claude Code | — |
 | [`lab/README.md`](lab/README.md) — GNS3 lab as code | — |
-| [`docs/lab-topology-3d.html`](docs/lab-topology-3d.html) — interactive 3D view of the lab | — |
+| [`docs/rootvex-lab-3d.html`](docs/rootvex-lab-3d.html) — interactive 3D view of the lab | — |
 
 PDFs are generated from the Markdown: `uv run scripts/build_pdfs.py`.

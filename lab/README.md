@@ -1,7 +1,7 @@
 # Rootvex lab (GNS3)
 
 Stage B of the lab in [`docs/DESIGN.md`](../docs/DESIGN.md) section 9, as code.
-Interactive picture: [`docs/lab-topology-3d.html`](../docs/lab-topology-3d.html).
+Interactive picture: [`docs/rootvex-lab-3d.html`](../docs/rootvex-lab-3d.html).
 
 | File | What it is |
 |---|---|
