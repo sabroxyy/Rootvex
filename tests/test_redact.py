@@ -59,8 +59,10 @@ ike peer branch
  pre-shared-key cipher %@%@qwerty%@%@
 """
 
-PALO_XML = "<users><entry name='admin'><phash>$1$abc$xyz</phash></entry></users>" \
-           "<hostname>PA-EDGE-1</hostname>"
+PALO_XML = (
+    "<users><entry name='admin'><phash>$1$abc$xyz</phash></entry></users>"
+    "<hostname>PA-EDGE-1</hostname>"
+)
 
 
 def redact(text, **kw):
@@ -70,11 +72,18 @@ def redact(text, **kw):
 
 def test_fortigate_secrets_and_addresses():
     r, out = redact(FORTIGATE)
-    for leaked in ("dGhpc2lz", "SH2abc", "s3cr3tcomm", "FW-HQ-01", "172.16.10.1",
-                   "203.0.113.10", "corp-internal"):
+    for leaked in (
+        "dGhpc2lz",
+        "SH2abc",
+        "s3cr3tcomm",
+        "FW-HQ-01",
+        "172.16.10.1",
+        "203.0.113.10",
+        "corp-internal",
+    ):
         assert leaked not in out, leaked
-    assert "255.255.255.0" in out                      # netmask kept
-    assert "set authentication md5\n" in out           # did not eat the next line
+    assert "255.255.255.0" in out  # netmask kept
+    assert "set authentication md5\n" in out  # did not eat the next line
     assert out.count(SECRET) == 3
     assert "HOST-1" in out
 
@@ -83,19 +92,29 @@ def test_private_subnet_structure_kept():
     r, out = redact("gw 172.16.10.1 host 172.16.10.20 other 172.16.99.5 lan 192.168.1.5")
     a, b, c, d = out.split()[1::2]
     assert a.rsplit(".", 1)[0] == b.rsplit(".", 1)[0]  # same /24 stays same /24
-    assert a.split(".")[:2] == c.split(".")[:2]        # same /16 stays same /16
+    assert a.split(".")[:2] == c.split(".")[:2]  # same /16 stays same /16
     assert d.split(".")[:2] != a.split(".")[:2]
     assert all(x.startswith("10.") for x in (a, b, c, d))
 
 
 def test_cisco():
     r, out = redact(CISCO)
-    for leaked in ("$9$abcd", "$9$zzzz", "Publ1cRW", "MyPsk123", "OspfKey!", "0822455D0A16",
-                   "CORE-SW-01", "192.168.10.1", "198.51.100.7", "aabb.ccdd.eeff"):
+    for leaked in (
+        "$9$abcd",
+        "$9$zzzz",
+        "Publ1cRW",
+        "MyPsk123",
+        "OspfKey!",
+        "0822455D0A16",
+        "CORE-SW-01",
+        "192.168.10.1",
+        "198.51.100.7",
+        "aabb.ccdd.eeff",
+    ):
         assert leaked not in out, leaked
-    assert "0.0.255.255" in out                        # wildcard kept
-    assert "0200.0000.0001" in out                     # dotted MAC stays dotted
-    assert "host-" not in out                          # MAC not mistaken for a domain
+    assert "0.0.255.255" in out  # wildcard kept
+    assert "0200.0000.0001" in out  # dotted MAC stays dotted
+    assert "host-" not in out  # MAC not mistaken for a domain
 
 
 def test_huawei_and_palo_alto():
@@ -111,7 +130,7 @@ def test_round_trip_restores_everything_but_secrets():
     back = r.restore(out)
     assert "172.16.10.1" in back and "CORE-SW-01" in back and "aabb.ccdd.eeff" in back
     assert "erp.corp-internal.net" in back
-    assert "MyPsk123" not in back                      # secrets never come back
+    assert "MyPsk123" not in back  # secrets never come back
 
 
 def test_restore_new_address_in_mapped_subnet():
@@ -129,8 +148,10 @@ def test_extra_terms_and_emails():
 
 
 def test_ipv6_and_logs():
-    r, out = redact('devname="FW-HQ-01" srcip=2a02:1234:5678:1::10 time=10:30:45 '
-                    'dstip=8.8.8.8 file=config.txt api_key=sk-12345678')
+    r, out = redact(
+        'devname="FW-HQ-01" srcip=2a02:1234:5678:1::10 time=10:30:45 '
+        "dstip=8.8.8.8 file=config.txt api_key=sk-12345678"
+    )
     assert "2a02:1234" not in out and "FW-HQ-01" not in out and "sk-1234" not in out
     assert "time=10:30:45" in out and "config.txt" in out
     assert r.restore(out).startswith('devname="FW-HQ-01" srcip=2a02:1234:5678:1::10')

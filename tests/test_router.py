@@ -38,15 +38,21 @@ class FakeChat:
             if self.reason:
                 return json.dumps(self.reason)
             ip = next(w.split("=")[1] for w in user.split() if w.startswith("dstip="))
-            return "```json\n" + json.dumps({
-                "root_cause": f"Phase 1 proposal mismatch with peer {ip}",
-                "confidence": "medium",
-                "evidence": [],
-                "verify_commands": ["diagnose vpn ike gateway list name to-branch"],
-                "fix_commands": [f"set remote-gw {ip}"],
-                "rollback_commands": [],
-                "risk": "low",
-            }) + "\n```"
+            return (
+                "```json\n"
+                + json.dumps(
+                    {
+                        "root_cause": f"Phase 1 proposal mismatch with peer {ip}",
+                        "confidence": "medium",
+                        "evidence": [],
+                        "verify_commands": ["diagnose vpn ike gateway list name to-branch"],
+                        "fix_commands": [f"set remote-gw {ip}"],
+                        "rollback_commands": [],
+                        "risk": "low",
+                    }
+                )
+                + "\n```"
+            )
         return user.split("Material:\n", 1)[-1]  # "summary" = the evidence itself
 
 
@@ -128,12 +134,28 @@ def test_reviewer_disagreement_needs_engineer(monkeypatch, cloud_keys):
 
 
 def _finding(*cmds):
-    return {"root_cause": "x", "confidence": "high", "evidence": [], "verify_commands": [],
-            "fix_commands": list(cmds), "rollback_commands": [], "risk": "x"}
+    return {
+        "root_cause": "x",
+        "confidence": "high",
+        "evidence": [],
+        "verify_commands": [],
+        "fix_commands": list(cmds),
+        "rollback_commands": [],
+        "risk": "x",
+    }
 
 
-@pytest.mark.parametrize("cmd", ["execute reboot", "write erase", "reload", "shutdown",
-                                 "execute factoryreset", "request system restart"])
+@pytest.mark.parametrize(
+    "cmd",
+    [
+        "execute reboot",
+        "write erase",
+        "reload",
+        "shutdown",
+        "execute factoryreset",
+        "request system restart",
+    ],
+)
 def test_dangerous_commands_need_engineer(monkeypatch, cmd):
     s, _ = session(monkeypatch, "local", reason=_finding(cmd))
     assert s.troubleshoot("q", "m")["status"] == "needs_engineer_review"

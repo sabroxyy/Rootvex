@@ -22,7 +22,7 @@ from rootvex.config import load_settings
 from rootvex.router import Session
 
 result = Session(load_settings(), user="sabry").troubleshoot(question, wrapped_device_output)
-result["status"]   # complete | ready_for_approval | needs_engineer_review
+result["status"]  # complete | ready_for_approval | needs_engineer_review
 ```
 
 ## Safety
