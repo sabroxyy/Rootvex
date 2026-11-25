@@ -151,6 +151,30 @@ mtools, Docker without sudo, GNS3 VM disabled, server on 127.0.0.1:3080 with aut
   (R1–R2 FULL, R2–BR1 FULL over Tunnel0); `configure terminal`, `conf t`,
   `reload` → DENIED and logged.
 
+## 15. Phase 4: playbooks (2026-11-24/25)
+
+Built in the cloud session on branch `phase4` (no workstation needed):
+
+- Quote-checked evidence: every finding quotes a line that code finds in that
+  device's output, or it is UNVERIFIED with the reason.
+- Playbook engine + 5 playbooks (`config/playbooks/`), analyzers comparing both
+  ends of a link, playbook node in the graph, web page shows code findings.
+- 11 recorded faults (`tests/fixtures/scenarios/`), `rootvex ask --scenario`,
+  fault guide `lab/FAULTS.md`.
+- Results: `uv run ruff check .` → All checks passed; `uv run pytest` → 86 passed.
+
+To do on the workstation:
+
+```bash
+cd ~/projects/rootvex
+git fetch origin && git switch phase4
+uv sync
+uv run pytest -q
+uv run rootvex ask "OSPF neighbor R1 R2 is down" --scenario ospf_passive --steps
+```
+
+then plant each fault from `lab/FAULTS.md` on the live lab.
+
 ## Next
 
 - [x] Confirm `docker run hello-world` without sudo
@@ -166,6 +190,8 @@ mtools, Docker without sudo, GNS3 VM disabled, server on 127.0.0.1:3080 with aut
 - [x] `cp config/inventory.example.yaml config/inventory.local.yaml`
 - [x] Build the lab: `uv run python lab/build_gns3_lab.py --rebuild --start`
 - [x] `ssh rootvex@10.99.0.11` from the host; Phase 3 live-lab checks passed
+- [x] Phase 4 playbooks built and proven on recorded faults
+- [ ] Phase 4 live proof: plant the 11 faults in `lab/FAULTS.md`, check each top finding
 - [ ] Optional: IOSv + IOSvL2 (CML-Personal) for a managed SW1
 - [ ] NVIDIA Container Toolkit (Phase 9)
 - [ ] Open WebUI (Phase 7, optional)

@@ -1,7 +1,7 @@
 # Rootvex design (Phase 0)
 
-**Version 3 — 23 November 2026** (renamed from NetWarden on 22 November). Phases 0–3 are complete;
-the live GNS3 lab runs and Phase 4 (playbooks) is next.
+**Version 4 — 25 November 2026** (renamed from NetWarden on 22 November). Phases 0–3 are complete;
+Phase 4 (playbooks) is built and proven on recorded faults (section 11.7); live-lab proof is next.
 Sections 1–10 are the original Phase 0 design, kept as the record of what was
 agreed. **Section 11 lists what changed during the build and answers the open
 questions.** Current status and how-to: [`MANUAL.md`](MANUAL.md).
@@ -428,8 +428,40 @@ matches that device's output" (one run credited R2's Tunnel0 to R1).
 
 ### 11.6 Risks seen in practice
 
-- **Small model gives up early** without structure → Phase 4 playbooks.
+- **Small model gives up early** without structure → Phase 4 playbooks (done, 11.7).
 - **Crash-looping emulated routers fill the disk** (~105 GB in hours) → test
   scripts stop a router after 3 crash messages; never leave one running.
 - **Ollama on Pascal** depends on Ollama still shipping its CUDA 12 build →
   check release notes before upgrading.
+
+### 11.7 Phase 4 as built (25 Nov 2026)
+
+Changes from section 3.4:
+
+- **Graph:** `plan → playbook → agent ⇄ tools → report`. The playbook node
+  runs the checks itself (through the same `run_show_command` tool, so the
+  allowlist, lab check, redaction and audit log all apply). It does not just
+  "guide the plan": a 3B model skipped steps when only guided.
+- **Playbook format:** `id`, `title`, `keywords` (to choose the playbook),
+  ordered `checks`, regex `signatures` (cause/fix text with `{1}` and
+  `{device}`), and named `analyzers` (Python, `src/rootvex/playbooks/analyzers.py`)
+  for comparisons a regex cannot do — both ends of a link, counters.
+- **Findings** carry `cause`, `fix`, `proof` (device, command, exact line),
+  `weight` (how specific) and `symptom` (what is broken vs. why). Causes rank
+  before symptoms; the same cause seen twice is kept once.
+- **Quote check (from 11.5):** `Evidence.quote` must be in that device's
+  output for that command (case and spacing ignored); code sets `verified` and
+  `check`. The model's evidence and the code findings get the same check.
+- **Report:** new fields `playbook` and `code_findings`. Code findings' proof
+  lines are added as evidence. If the model's answer is weak (low confidence
+  or empty), the best code cause becomes the likely cause at medium
+  confidence; a confident model answer is kept.
+- **Budget:** playbook checks are capped at `max_steps` commands and do not
+  use the model's steps. Devices = those named in the question, else all.
+- **Proof:** 11 recorded faults in IOS 12.4 format + 1 healthy case
+  (`tests/fixtures/scenarios/`), each found with every proof line verified;
+  `lab/FAULTS.md` gives the same faults to plant in GNS3. 86 tests pass.
+- **Not done in Phase 4:** live-lab proof (needs the workstation), DNS and
+  PC-gateway checks for "can't reach website" (hosts are not managed devices),
+  err-disable/duplex faults (SW1 is unmanaged).
+
