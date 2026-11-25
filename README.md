@@ -30,6 +30,7 @@ uv run rootvex devices                               # lab inventory
 uv run rootvex check R1 "show ip ospf neighbor"      # allowlist dry-run
 uv run rootvex ask "OSPF between R1 and R2 is down" --fixtures   # no lab needed
 uv run rootvex ask "OSPF between R1 and R2 is down"              # real GNS3 lab
+uv run rootvex web            # web prototype: http://127.0.0.1:8000 (set ROOTVEX_WEB__PASSWORD in .env)
 
 # Tests and lint
 uv run pytest

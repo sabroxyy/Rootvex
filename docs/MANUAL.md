@@ -43,11 +43,17 @@ file names there may change.
 | 4 | Troubleshooting playbooks | ⬜ **Next** |
 | 5 | Knowledge base (RAG) | ⬜ Planned |
 | 6 | Evaluation | ⬜ Planned |
-| 7 | API and web UI | ⬜ Planned |
+| 7 | API and web UI | 🟡 Prototype built early: local chat page, login, live steps, Approve/Reject recorded, SQLite |
 | 8 | Approved configuration changes | ⬜ Planned |
 | 9 | Packaging | ⬜ Planned |
 
 ### What works today
+
+- **Web prototype** (`uv run rootvex web`, http://127.0.0.1:8000): sign in,
+  describe a problem, watch the plan and every command arrive (RAN / DENIED),
+  read the report, then **Approve or Reject** the proposed fix. The decision is
+  only recorded, with your name and time; nothing is sent to a device. Works with
+  the live lab or with recorded outputs (no lab needed).
 
 - **The live lab runs**: 4 Cisco 7200 routers (IOS 12.4(24)T5) in GNS3 with
   OSPF, eBGP, NAT and an IPsec VTI tunnel, reachable over SSH on the
@@ -486,10 +492,21 @@ topics must produce "I don't know", not invention.
 on root-cause accuracy, invented facts, steps and time. The fixture runner
 built in Phase 3 is the base for this.
 
-### Phase 7 — API and web UI ⬜ *(planned)*
+### Phase 7 — API and web UI 🟡 *(prototype built early)*
 
-FastAPI (ask, history, health) on localhost/LAN only, with auth; optional
-Open WebUI. Every request in the audit log.
+Built ahead of Phase 4 as the project prototype (system map boxes 1, 2 and 4):
+
+| Part | Detail |
+|---|---|
+| Page | `src/rootvex/web/static/index.html`: question box, Recorded / Live switch, plan, commands with RAN / DENIED / ERROR, report with verified evidence, Approve / Reject with a note, history |
+| API | `src/rootvex/web/app.py` (FastAPI): `/api/runs` (start, list), `/api/runs/{id}` (progress), `/api/runs/{id}/decision`, `/api/health` |
+| Login | HTTP Basic, user and password from `.env` (`ROOTVEX_WEB__USER`, `ROOTVEX_WEB__PASSWORD`); the server refuses to start without a password |
+| Storage | SQLite `data/rootvex.db` (git-ignored): request, user, mode, plan, every step, report, decision, who and when. Survives restarts; a run cut off by a restart is marked "interrupted" |
+| Safety | Same read-only tools as the CLI; Approve only records; listens on 127.0.0.1 unless you pass `--host`; one run at a time (one GPU) |
+| Tests | `tests/test_web.py` (7): login, full run, denied config command, bad input, model failure, restart |
+
+Still to do in Phase 7: per-user accounts and roles (viewer / engineer /
+approver), sites per user, HTTPS for use beyond localhost, optional Open WebUI.
 
 ### Phase 8 — Approved configuration changes ⬜ *(planned)*
 
@@ -514,6 +531,7 @@ Toolkit), full docs, demo script.
 | `uv run rootvex devices [--fixtures]` | List inventory devices (after the lab check) |
 | `uv run rootvex check R1 "show ip route"` | Allowlist dry-run; nothing is sent |
 | `uv run rootvex ask "..." [--fixtures] [--steps]` | Troubleshoot; `--fixtures` uses recorded outputs, `--steps` prints every tool call |
+| `uv run rootvex web [--host H] [--port P]` | Web prototype at http://127.0.0.1:8000; needs `ROOTVEX_WEB__PASSWORD` in `.env` |
 | `uv run python lab/build_gns3_lab.py [--rebuild] [--start]` | Build the GNS3 lab |
 | `bash lab/check_gpu.sh [--load]` / `bash lab/check_gns3_env.sh` | Health checks |
 | `uv run python lab/build_gns3_lab.py --ssh` | Create missing SSH keys on the running lab's routers |
@@ -567,6 +585,7 @@ with `ROOTVEX_<SECTION>__<KEY>`:
 | Allowed commands | `config/allowlist/cisco_ios.yaml` | yes |
 | Recorded outputs | `tests/fixtures/cisco_ios/<DEVICE>/` | yes |
 | Audit logs | `logs/rootvex-YYYYMMDD.jsonl` | **no** |
+| Web requests, reports, approvals | `data/rootvex.db` (SQLite) | **no** |
 | Lab definition | `lab/` | yes |
 | GNS3 projects / images | `~/GNS3/projects`, `~/GNS3/images` | **no** |
 | Models | `/usr/share/ollama/.ollama` (SSD) | **no** |
