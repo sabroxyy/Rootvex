@@ -22,7 +22,12 @@ REPORT = json.dumps(
     {
         "likely_cause": "OSPF area mismatch: R1 Gi0/1 area 0, R2 Gi0/1 area 1.",
         "evidence": [
-            {"device": "R2", "command": "show ip protocols", "finding": "10.0.12.0/30 area 1"}
+            {
+                "device": "R2",
+                "command": "show ip protocols",
+                "finding": "10.0.12.0/30 area 1",
+                "quote": "10.0.12.0 0.0.0.3 area 1",
+            }
         ],
         "proposed_fix": "On R2: network 10.0.12.0 0.0.0.3 area 0",
         "confidence": "high",

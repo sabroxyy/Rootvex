@@ -22,12 +22,17 @@ from langchain_core.tools import BaseTool
 from langgraph.graph import END, START, StateGraph
 
 from rootvex.agent import prompts
-from rootvex.agent.report import parse_report
+from rootvex.agent.report import parse_report, verify_evidence
 from rootvex.agent.state import AgentState
 from rootvex.config import AgentSettings
 from rootvex.log import get_logger, new_run_id
 
 _OUTPUT_TAG = re.compile(r'<untrusted_device_output device="([^"]*)" command="([^"]*)">')
+_OUTPUT_BLOCK = re.compile(
+    r'<untrusted_device_output device="([^"]*)" command="([^"]*)">\n?'
+    r"(.*?)\n?</untrusted_device_output>",
+    re.S,
+)
 
 log = get_logger("rootvex.agent")
 
@@ -96,6 +101,7 @@ def build_graph(
         last = state["messages"][-1]
         steps = state.get("steps", 0)
         executed = list(state.get("executed", []))
+        outputs = dict(state.get("outputs", {}))
         out: list[ToolMessage] = []
         for call in last.tool_calls:
             if steps >= cfg.max_steps:
@@ -110,6 +116,8 @@ def build_graph(
                     result = f"ERROR: tool failed: {type(exc).__name__}: {exc}"
             for device, command in _OUTPUT_TAG.findall(result):
                 executed.append((device, command))
+            for device, command, text in _OUTPUT_BLOCK.findall(result):
+                outputs[f"{_norm(device)}|{_norm(command)}"] = text
             log.info(
                 "tool_call", tool=call["name"], args=call["args"], step=steps, result=result[:2000]
             )
@@ -123,7 +131,7 @@ def build_graph(
                 }
             )
             out.append(ToolMessage(content=result, tool_call_id=call["id"], name=call["name"]))
-        return {"messages": out, "steps": steps, "executed": executed}
+        return {"messages": out, "steps": steps, "executed": executed, "outputs": outputs}
 
     def report_node(state: AgentState) -> dict:
         limit = state.get("limits_hit")
@@ -131,9 +139,8 @@ def build_graph(
         messages = list(state["messages"]) + [HumanMessage(prompts.REPORT.format(limit_note=note))]
         reply = _call_llm(llm, messages, "report")
         report = parse_report(str(reply.content))
-        ran = {(_norm(d), _norm(c)) for d, c in state.get("executed", [])}
-        for ev in report.evidence:
-            ev.verified = (_norm(ev.device), _norm(ev.command)) in ran
+        outputs = {tuple(k.split("|", 1)): v for k, v in state.get("outputs", {}).items()}
+        verify_evidence(report, outputs)
         report.limits_hit = limit
         log.info("report", report=report.model_dump())
         emit({"type": "report", "report": report.model_dump()})
@@ -200,7 +207,13 @@ def run_agent(
         graph = build_graph(llm, tools, cfg, devices, on_event=on_event)
         # Each step is ~2 graph hops; give LangGraph headroom above our own limit.
         state = graph.invoke(
-            {"question": question, "steps": 0, "started_at": time.monotonic(), "executed": []},
+            {
+                "question": question,
+                "steps": 0,
+                "started_at": time.monotonic(),
+                "executed": [],
+                "outputs": {},
+            },
             config={"recursion_limit": cfg.max_steps * 3 + 10},
         )
         state["run_id"] = run_id

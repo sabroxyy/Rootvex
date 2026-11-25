@@ -12,7 +12,12 @@ GOOD_REPORT = json.dumps(
     {
         "likely_cause": "R1 Gi0/1 is administratively down.",
         "evidence": [
-            {"device": "R1", "command": "show ip interface brief", "finding": "Gi0/1 admin down"},
+            {
+                "device": "R1",
+                "command": "show ip interface brief",
+                "finding": "Gi0/1 admin down",
+                "quote": "GigabitEthernet0/1 10.0.12.1 YES manual administratively down down",
+            },
             {"device": "R2", "command": "show ip ospf neighbor", "finding": "made up"},
         ],
         "proposed_fix": "interface Gi0/1 / no shutdown on R1",

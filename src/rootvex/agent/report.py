@@ -13,8 +13,12 @@ class Evidence(BaseModel):
     device: str
     command: str
     finding: str
-    # Set by the agent, not the model: True only if this command really ran this session.
+    # Exact line copied from that device's output for that command.
+    quote: str = ""
+    # Set by code, not the model: True only if the command ran on that device AND
+    # the quote appears in that output. `check` says why when it is not verified.
     verified: bool = False
+    check: str = ""
 
 
 class Report(BaseModel):
@@ -33,8 +37,10 @@ class Report(BaseModel):
         if self.evidence:
             lines.append("Evidence:")
             for e in self.evidence:
-                mark = "" if e.verified else " [UNVERIFIED - command was not run]"
+                mark = "" if e.verified else f" [UNVERIFIED - {e.check or 'not checked'}]"
                 lines.append(f"  - {e.device} `{e.command}`: {e.finding}{mark}")
+                if e.quote:
+                    lines.append(f'      quote: "{e.quote}"')
         if self.proposed_fix:
             lines.append(f"Proposed fix (not applied): {self.proposed_fix}")
         if self.next_steps:
@@ -58,3 +64,24 @@ def parse_report(text: str) -> Report:
         confidence="low",
         next_steps=["Model did not return valid JSON; review the raw answer above."],
     )
+
+
+def _squash(text: str) -> str:
+    return " ".join(text.lower().split())
+
+
+def verify_evidence(report: Report, outputs: dict[tuple[str, str], str]) -> None:
+    """Mark each evidence item verified only if its quote is in that device's real output.
+
+    outputs maps (device, command), both normalised, to the text the device returned.
+    """
+    for ev in report.evidence:
+        key = (_squash(ev.device), _squash(ev.command))
+        if key not in outputs:
+            ev.verified, ev.check = False, "command was not run on this device"
+        elif not ev.quote.strip():
+            ev.verified, ev.check = False, "no quote from the output"
+        elif _squash(ev.quote) not in _squash(outputs[key]):
+            ev.verified, ev.check = False, "quote not found in this device's output"
+        else:
+            ev.verified, ev.check = True, "quote found in the output"

@@ -222,7 +222,11 @@
       const ul = el('ul', 'evidence');
       r.evidence.forEach(e => {
         const li = el('li'); li.append(el('strong', null, e.device + ' '), el('code', null, e.command), document.createTextNode(': ' + e.finding + ' '));
-        li.append(el('span', 'pill ' + (e.verified ? 'ok' : 'bad'), e.verified ? 'verified' : 'unverified'));
+        const pill = el('span', 'pill ' + (e.verified ? 'ok' : 'bad'), e.verified ? 'verified' : 'unverified');
+        if (e.check) pill.title = e.check;
+        li.append(pill);
+        if (e.quote) { const q = el('div', 'muted'); q.append(el('code', null, '“' + e.quote + '”')); li.append(q); }
+        if (!e.verified && e.check) li.append(el('div', 'bad', e.check));
         ul.append(li);
       });
       add('Evidence', ul);

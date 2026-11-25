@@ -32,10 +32,13 @@ with a short summary of what you found (no tool call)."""
 REPORT = """Write the final report as a single JSON object, nothing else, with these keys:
 {{
   "likely_cause": "one or two sentences",
-  "evidence": [{{"device": "R1", "command": "exact command you ran", "finding": "what it showed"}}],
+  "evidence": [{{"device": "R1", "command": "exact command you ran", "finding": "what it shows",
+                "quote": "one line copied EXACTLY from that device's output for that command"}}],
   "proposed_fix": "config change you would suggest (it will NOT be applied)",
   "confidence": "low" | "medium" | "high",
   "next_steps": ["..."],
   "sources": []
 }}
-Only list evidence from commands you actually ran in this conversation.{limit_note}"""
+Only list evidence from commands you actually ran in this conversation. Each quote must
+be copied character for character from the output of THAT device for THAT command;
+evidence whose quote cannot be found there is marked UNVERIFIED.{limit_note}"""
