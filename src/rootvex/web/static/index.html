@@ -1,0 +1,264 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rootvex</title>
+<style>
+  /* Local-only page: system fonts, no CDN. Dark console look with a light variant. */
+  :root {
+    --bg: #0f161a; --panel: #162127; --panel-2: #1c2a31; --line: #2a3a43;
+    --fg: #dde7ea; --muted: #8ea2aa; --accent: #5fc4c0; --accent-ink: #0f161a;
+    --ok: #7bd389; --warn: #e0a94a; --bad: #f07167;
+    --mono: ui-monospace, "SFMono-Regular", "DejaVu Sans Mono", Menlo, monospace;
+    --sans: system-ui, -apple-system, "Segoe UI", "DejaVu Sans", sans-serif;
+    color-scheme: dark;
+  }
+  @media (prefers-color-scheme: light) {
+    :root { --bg: #f4f7f8; --panel: #ffffff; --panel-2: #eef3f5; --line: #d5e0e5;
+      --fg: #182329; --muted: #5d7079; --accent: #1f7f7b; --accent-ink: #ffffff;
+      --ok: #2e8b4a; --warn: #a86a12; --bad: #c2413a; color-scheme: light; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--fg); font: 15px/1.5 var(--sans); }
+  header { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap;
+    padding: 14px max(16px, env(safe-area-inset-left, 0px)); border-bottom: 1px solid var(--line); }
+  header h1 { margin: 0; font-size: 20px; letter-spacing: .02em; }
+  header .meta { color: var(--muted); font-size: 13px; }
+  header .safe { margin-left: auto; font-size: 12px; color: var(--ok); border: 1px solid var(--ok);
+    border-radius: 999px; padding: 2px 10px; }
+  main { display: grid; grid-template-columns: 340px 1fr; gap: 16px; max-width: 1280px; margin: 0 auto;
+    padding: 16px max(16px, env(safe-area-inset-right, 0px)) 40px max(16px, env(safe-area-inset-left, 0px)); }
+  @media (max-width: 860px) { main { grid-template-columns: 1fr; } }
+  section, aside { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 16px; min-width: 0; }
+  h2 { margin: 0 0 10px; font-size: 15px; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); }
+  textarea { width: 100%; min-height: 110px; resize: vertical; background: var(--panel-2); color: var(--fg);
+    border: 1px solid var(--line); border-radius: 6px; padding: 10px; font: inherit; }
+  textarea:focus, button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 10px; }
+  .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+  .seg label { padding: 6px 10px; cursor: pointer; font-size: 13px; color: var(--muted); }
+  .seg input { position: absolute; opacity: 0; pointer-events: none; }
+  .seg input:checked + span { color: var(--accent-ink); }
+  .seg label:has(input:checked) { background: var(--accent); color: var(--accent-ink); }
+  button { font: inherit; border-radius: 6px; border: 1px solid var(--line); background: var(--panel-2);
+    color: var(--fg); padding: 7px 14px; cursor: pointer; }
+  button.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 600; }
+  button:disabled { opacity: .5; cursor: default; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+  .chip { font-size: 12px; padding: 4px 8px; }
+  .hint { color: var(--muted); font-size: 13px; margin: 8px 0 0; }
+  .history { list-style: none; margin: 0; padding: 0; }
+  .history li { border-top: 1px solid var(--line); padding: 8px 0; cursor: pointer; }
+  .history li:first-child { border-top: 0; }
+  .history .q { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .history .m { color: var(--muted); font-size: 12px; }
+  .pill { display: inline-block; font-size: 11px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase;
+    border-radius: 999px; padding: 1px 8px; border: 1px solid currentColor; }
+  .ok { color: var(--ok); } .warn { color: var(--warn); } .bad { color: var(--bad); } .muted { color: var(--muted); }
+  .empty { color: var(--muted); padding: 30px 0; text-align: center; }
+  .question { font-size: 17px; margin: 0 0 4px; }
+  .plan { white-space: pre-wrap; background: var(--panel-2); border-radius: 6px; padding: 10px; font-size: 14px; }
+  details.step { border: 1px solid var(--line); border-radius: 6px; margin-top: 8px; background: var(--panel-2); }
+  details.step summary { cursor: pointer; padding: 8px 10px; display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
+  details.step summary code { font-family: var(--mono); font-size: 13px; }
+  pre.out { margin: 0; padding: 10px; border-top: 1px solid var(--line); font: 12.5px/1.4 var(--mono);
+    white-space: pre-wrap; word-break: break-word; max-height: 360px; overflow: auto; }
+  .report { border: 1px solid var(--accent); border-radius: 8px; padding: 14px; margin-top: 16px; }
+  .report h3 { margin: 0 0 6px; font-size: 18px; }
+  .report dl { margin: 10px 0 0; display: grid; grid-template-columns: 150px 1fr; gap: 6px 12px; }
+  .report dt { color: var(--muted); font-size: 13px; }
+  .report dd { margin: 0; min-width: 0; }
+  .evidence { margin: 0; padding-left: 18px; }
+  .evidence code { font-family: var(--mono); font-size: 13px; }
+  .decision { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 14px; padding-top: 12px;
+    border-top: 1px dashed var(--line); }
+  .decision input { flex: 1 1 200px; background: var(--panel-2); color: var(--fg); border: 1px solid var(--line);
+    border-radius: 6px; padding: 7px 10px; font: inherit; }
+  .spinner { display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: var(--accent);
+    animation: pulse 1s infinite ease-in-out; margin-right: 6px; }
+  @keyframes pulse { 50% { opacity: .2; } }
+  @media (prefers-reduced-motion: reduce) { .spinner { animation: none; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>Rootvex</h1>
+  <span class="meta" id="meta">connecting…</span>
+  <span class="safe" title="Device tools only run allowlisted show commands; config commands are denied before they reach a device.">read-only · lab only</span>
+</header>
+
+<main>
+  <aside>
+    <h2>Ask</h2>
+    <form id="ask">
+      <textarea id="question" placeholder="Describe the problem, e.g. “OSPF between R1 and R2 is down”" required minlength="3" maxlength="2000"></textarea>
+      <div class="row">
+        <div class="seg" role="radiogroup" aria-label="Data source">
+          <label><input type="radio" name="mode" value="recorded" checked><span>Recorded outputs</span></label>
+          <label><input type="radio" name="mode" value="live"><span>Live lab</span></label>
+        </div>
+        <button class="primary" type="submit" id="send">Troubleshoot</button>
+      </div>
+      <div class="chips" id="examples">
+        <button type="button" class="chip">OSPF between R1 and R2 is down</button>
+        <button type="button" class="chip">Is OSPF healthy between R1 and R2?</button>
+        <button type="button" class="chip">Is the VPN tunnel between R2 and BR1 up?</button>
+      </div>
+      <p class="hint">“Recorded” replays saved router outputs (works without the lab). “Live lab” SSHes into the GNS3 routers.</p>
+    </form>
+
+    <h2 style="margin-top:22px">History</h2>
+    <ul class="history" id="history"><li class="muted">No requests yet.</li></ul>
+  </aside>
+
+  <section id="run">
+    <div class="empty">Ask a question to start. The plan, every command and the report appear here.</div>
+  </section>
+</main>
+
+<script>
+(() => {
+  const $ = (s, el = document) => el.querySelector(s);
+  const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
+  const api = async (path, opts = {}) => {
+    const r = await fetch(path, { headers: { 'Content-Type': 'application/json' }, ...opts });
+    if (!r.ok) throw new Error((await r.json().catch(() => ({}))).detail || r.statusText);
+    return r.json();
+  };
+  let current = null, timer = null;
+
+  api('/api/health').then(h => { $('#meta').textContent = `model ${h.model} · signed in as ${h.user}`; })
+    .catch(() => { $('#meta').textContent = 'not connected'; });
+
+  $('#examples').addEventListener('click', e => {
+    if (e.target.matches('.chip')) { $('#question').value = e.target.textContent; $('#question').focus(); }
+  });
+
+  $('#ask').addEventListener('submit', async e => {
+    e.preventDefault();
+    const question = $('#question').value.trim();
+    const mode = new FormData(e.target).get('mode');
+    $('#send').disabled = true;
+    try { const { id } = await api('/api/runs', { method: 'POST', body: JSON.stringify({ question, mode }) }); open(id); }
+    catch (err) { alert(err.message); }
+    finally { $('#send').disabled = false; }
+  });
+
+  function open(id) { current = id; clearTimeout(timer); poll(); }
+
+  async function poll() {
+    if (!current) return;
+    try {
+      const run = await api('/api/runs/' + current);
+      render(run);
+      if (run.status === 'running') timer = setTimeout(poll, 1500);
+    } catch (err) { $('#run').replaceChildren(el('div', 'empty bad', err.message)); }
+    loadHistory();
+  }
+
+  async function loadHistory() {
+    const runs = await api('/api/runs').catch(() => []);
+    const ul = $('#history'); ul.replaceChildren();
+    if (!runs.length) { ul.append(el('li', 'muted', 'No requests yet.')); return; }
+    runs.forEach(r => {
+      const li = el('li'); li.tabIndex = 0;
+      li.append(el('span', 'q', r.question));
+      const status = r.decision ? `${r.decision} by ${r.decided_by}` : r.status;
+      li.append(el('span', 'm', `${r.created_at.replace('T', ' ').slice(0, 16)} · ${r.mode} · ${status}`));
+      li.addEventListener('click', () => open(r.id));
+      li.addEventListener('keydown', ev => { if (ev.key === 'Enter') open(r.id); });
+      ul.append(li);
+    });
+  }
+
+  function statusPill(run) {
+    const map = { running: ['warn', 'running'], done: ['ok', 'done'], failed: ['bad', 'failed'], interrupted: ['bad', 'interrupted'] };
+    const [cls, txt] = map[run.status] || ['muted', run.status];
+    return el('span', 'pill ' + cls, txt);
+  }
+
+  function render(run) {
+    const box = $('#run'); box.replaceChildren();
+    const head = el('div', 'row'); head.style.marginTop = '0';
+    head.append(statusPill(run), el('span', 'muted', `${run.mode === 'live' ? 'Live lab' : 'Recorded outputs'} · ${run.created_at.replace('T', ' ').slice(0, 19)} · ${run.user}`));
+    box.append(el('p', 'question', run.question), head);
+
+    if (run.plan) { box.append(el('h2', null, 'Plan')); box.lastChild.style.marginTop = '18px'; box.append(el('div', 'plan', run.plan)); }
+
+    const tools = run.events.filter(e => e.type === 'tool');
+    if (tools.length || run.status === 'running') {
+      const h = el('h2', null, `Commands (${tools.length})`); h.style.marginTop = '18px'; box.append(h);
+      tools.forEach(t => box.append(stepView(t)));
+      if (run.status === 'running') {
+        const w = el('p', 'muted'); w.prepend(el('span', 'spinner')); w.append(run.plan ? 'Collecting evidence…' : 'Planning…'); box.append(w);
+      }
+    }
+    if (run.error) box.append(el('p', 'bad', run.error));
+    if (run.report) box.append(reportView(run));
+  }
+
+  function stepView(t) {
+    const d = el('details', 'step');
+    const s = el('summary');
+    const a = t.args || {};
+    const res = String(t.result || '');
+    const state = res.startsWith('DENIED') ? ['bad', 'denied'] : res.startsWith('ERROR') ? ['warn', 'error'] : ['ok', 'ran'];
+    s.append(el('span', 'muted', '#' + t.step), el('span', 'pill ' + state[0], state[1]));
+    s.append(el('strong', null, a.device || t.tool), el('code', null, a.command || t.tool));
+    d.append(s, el('pre', 'out', res.replace(/<\/?untrusted_device_output[^>]*>/g, '').trim()));
+    return d;
+  }
+
+  function reportView(run) {
+    const r = run.report, card = el('div', 'report');
+    card.append(el('h3', null, r.likely_cause));
+    const conf = { high: 'ok', medium: 'warn', low: 'bad' }[r.confidence] || 'muted';
+    card.append(el('span', 'pill ' + conf, 'confidence ' + r.confidence));
+    if (r.limits_hit) card.append(el('p', 'warn', `Stopped early (${r.limits_hit}); this report is partial.`));
+    const dl = el('dl');
+    const add = (k, v) => { dl.append(el('dt', null, k)); const dd = el('dd'); dd.append(v); dl.append(dd); };
+    if (r.evidence?.length) {
+      const ul = el('ul', 'evidence');
+      r.evidence.forEach(e => {
+        const li = el('li'); li.append(el('strong', null, e.device + ' '), el('code', null, e.command), document.createTextNode(': ' + e.finding + ' '));
+        li.append(el('span', 'pill ' + (e.verified ? 'ok' : 'bad'), e.verified ? 'verified' : 'unverified'));
+        ul.append(li);
+      });
+      add('Evidence', ul);
+    }
+    if (r.proposed_fix) add('Proposed fix', document.createTextNode(r.proposed_fix + ' (not applied)'));
+    if (r.next_steps?.length) { const ul = el('ul', 'evidence'); r.next_steps.forEach(s => ul.append(el('li', null, s))); add('Next steps', ul); }
+    card.append(dl);
+    card.append(decisionView(run));
+    return card;
+  }
+
+  function decisionView(run) {
+    const bar = el('div', 'decision');
+    if (run.decision) {
+      const cls = run.decision === 'approved' ? 'ok' : 'bad';
+      bar.append(el('span', 'pill ' + cls, run.decision),
+        el('span', 'muted', `by ${run.decided_by} at ${run.decided_at.replace('T', ' ')}${run.decision_note ? ' · “' + run.decision_note + '”' : ''} · recorded only, nothing was sent to a device`));
+      return bar;
+    }
+    const note = el('input'); note.id = 'note-' + run.id; note.placeholder = 'Note (optional)'; note.maxLength = 500;
+    const btn = (label, value, cls) => {
+      const b = el('button', cls, label); b.type = 'button';
+      b.addEventListener('click', async () => {
+        b.disabled = true;
+        try { render(await api(`/api/runs/${run.id}/decision`, { method: 'POST', body: JSON.stringify({ decision: value, note: note.value }) })); loadHistory(); }
+        catch (err) { alert(err.message); b.disabled = false; }
+      });
+      return b;
+    };
+    bar.append(note, btn('Approve fix', 'approved', 'primary'), btn('Reject', 'rejected'));
+    bar.append(el('p', 'hint', 'Your decision is recorded with your name and time. Nothing is sent to a device.'));
+    return bar;
+  }
+
+  loadHistory();
+})();
+</script>
+</body>
+</html>

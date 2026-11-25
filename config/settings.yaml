@@ -27,3 +27,9 @@ lab:
 logging:
   dir: logs
   level: INFO
+
+web:
+  host: 127.0.0.1        # local only; the password comes from .env (ROOTVEX_WEB__PASSWORD)
+  port: 8000
+  user: engineer
+  db_file: data/rootvex.db

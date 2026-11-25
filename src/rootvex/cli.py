@@ -133,5 +133,29 @@ def ask(
     console.print(f"\n[dim]run_id={state['run_id']}  steps={state['steps']}  log={log_file}[/dim]")
 
 
+@app.command()
+def web(
+    host: str = typer.Option(None, help="Address to listen on (default from settings: 127.0.0.1)."),
+    port: int = typer.Option(None, help="Port (default from settings: 8000)."),
+) -> None:
+    """Start the local web prototype: chat page, live steps, report, Approve/Reject."""
+    import uvicorn
+
+    from rootvex.web.app import create_app
+
+    s = load_settings()
+    application = create_app(s)
+    h, p = host or s.web.host, port or s.web.port
+    if h not in ("127.0.0.1", "localhost", "::1"):
+        console.print(
+            f"[yellow]Listening on {h}: other machines can reach the page. "
+            "The login uses plain HTTP; keep it on a trusted lab network.[/yellow]"
+        )
+    console.print(
+        f"Rootvex web: http://{'127.0.0.1' if h == '0.0.0.0' else h}:{p}  (user {s.web.user})"
+    )
+    uvicorn.run(application, host=h, port=p, log_level="warning")
+
+
 if __name__ == "__main__":
     app()

@@ -59,6 +59,16 @@ class LabSettings(BaseModel):
         return v
 
 
+class WebSettings(BaseModel):
+    """The local web prototype (rootvex web)."""
+
+    host: str = "127.0.0.1"  # local only by default
+    port: int = 8000
+    user: str = "engineer"
+    password: SecretStr | None = None  # required: the page refuses to start without it
+    db_file: Path = Path("data/rootvex.db")  # requests, reports, approvals (git-ignored)
+
+
 class LoggingSettings(BaseModel):
     dir: Path = Path("logs")
     level: str = "INFO"
@@ -76,6 +86,7 @@ class Settings(BaseSettings):
     agent: AgentSettings = Field(default_factory=AgentSettings)
     lab: LabSettings = Field(default_factory=LabSettings)
     logging: LoggingSettings = Field(default_factory=LoggingSettings)
+    web: WebSettings = Field(default_factory=WebSettings)
 
     @classmethod
     def settings_customise_sources(
