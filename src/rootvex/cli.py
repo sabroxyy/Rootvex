@@ -76,6 +76,10 @@ def ask(
     fixtures: bool = typer.Option(False, help="Use recorded outputs instead of SSH."),
     fake: bool = typer.Option(False, help="Phase 2 fake tool only (no inventory needed)."),
     show_steps: bool = typer.Option(False, "--steps", help="Print every tool call."),
+    scenario: str = typer.Option(
+        "",
+        help="Replay a recorded fault from tests/fixtures/scenarios/<name> (implies --fixtures).",
+    ),
 ) -> None:
     """Troubleshoot a problem: plan, collect read-only evidence, report."""
     from langchain_core.messages import ToolMessage
@@ -92,7 +96,15 @@ def ask(
     else:
         from rootvex.tools.device_tools import make_device_tools
 
-        inventory, allowlist, runner = _load_lab(s, fixtures)
+        inventory, allowlist, runner = _load_lab(s, fixtures or bool(scenario))
+        if scenario:
+            from rootvex.devices.connection import FixtureRunner
+
+            folder = PROJECT_ROOT / "tests/fixtures/scenarios" / scenario
+            if not folder.is_dir():
+                console.print(f"[red]No recorded scenario {scenario!r}[/red] (see lab/FAULTS.md)")
+                raise typer.Exit(2)
+            runner = FixtureRunner(folder)
         tools = make_device_tools(inventory, allowlist, runner, s.agent.max_output_chars)
         names = inventory.names()
 
