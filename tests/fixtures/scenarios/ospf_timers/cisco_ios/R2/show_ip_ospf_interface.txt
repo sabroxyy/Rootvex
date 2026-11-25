@@ -1,0 +1,7 @@
+GigabitEthernet1/0 is up, line protocol is up 
+  Internet Address 10.0.12.2/30, Area 0 
+  Process ID 1, Router ID 2.2.2.2, Network Type BROADCAST, Cost: 1
+  Transmit Delay is 1 sec, State DR, Priority 1 
+  Timer intervals configured, Hello 5, Dead 20, Wait 20, Retransmit 5
+    oob-resync timeout 40
+    Hello due in 00:00:04

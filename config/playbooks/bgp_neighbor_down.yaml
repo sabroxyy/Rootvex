@@ -1,0 +1,24 @@
+# BGP session down or not Established.
+id: bgp_neighbor_down
+title: BGP neighbor down
+keywords: [bgp, peer, peering, neighbor, neighbour, established, idle, active]
+checks:
+  - command: show ip bgp summary
+    why: State of every BGP neighbor
+  - command: show ip bgp neighbors
+    why: Configured remote AS, last reset reason, update source
+  - command: show ip interface brief
+    why: Is the interface toward the peer up
+  - command: show logging | include BGP
+    why: IOS logs wrong-AS notifications and resets
+analyzers: [bgp_sessions]
+signatures:
+  - command: show logging
+    regex: 'BGP-3-NOTIFICATION: (?:received from|sent to) neighbor (\S+) .*(?:peer in wrong AS|bad remote AS)'
+    cause: "{device}: neighbor {1} reports a bad remote AS (remote-as configured wrong on one side)"
+    fix: Make 'neighbor <ip> remote-as' match the peer's real AS number
+    weight: 94
+  - command: show ip bgp neighbors
+    regex: 'Last reset .*(?:BGP Notification sent|Peer closed|Hold Timer Expired).*'
+    cause: "{device} shows a BGP reset: see the quoted reason"
+    weight: 40

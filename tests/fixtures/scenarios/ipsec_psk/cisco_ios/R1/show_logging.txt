@@ -1,0 +1,1 @@
+*Nov 25 10:00:10.123: %CRYPTO-4-IKMP_BAD_MESSAGE: IKE message from 10.0.13.3 failed its sanity check or is malformed

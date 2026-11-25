@@ -1,0 +1,31 @@
+# OSPF neighbor down / not forming. Checks run on the routers named in the
+# question (both ends of the link). Order: state first, then cause.
+id: ospf_neighbor_down
+title: OSPF neighbor down
+keywords: [ospf, adjacency, neighbor, neighbour, exstart, init]
+checks:
+  - command: show ip ospf neighbor
+    why: Neighbor state on each side tells which kind of problem it is
+  - command: show ip ospf interface
+    why: Area, timers, passive, authentication and network type per interface
+  - command: show ip interface brief
+    why: Interfaces up/down and addresses (to spot an interface not in OSPF)
+  - command: show logging | include OSPF
+    why: IOS logs area mismatches, adjacency changes and duplicate router IDs
+analyzers: [ospf_neighbors, ospf_compare, ospf_not_enabled]
+signatures:
+  - command: show logging
+    regex: 'OSPF-4-ERRRCV: Received invalid packet: mismatched area ID.* from (\d+\.\d+\.\d+\.\d+)'
+    cause: "{device} logs OSPF packets with a mismatched area ID from {1}"
+    fix: Put both ends of the link in the same OSPF area
+    weight: 93
+  - command: show logging
+    regex: 'OSPF-\d-DUP_RTRID'
+    cause: "{device} logs a duplicate OSPF router ID"
+    fix: Give each router a unique 'router-id' and clear the OSPF process
+    weight: 90
+  - command: show logging
+    regex: 'OSPF-5-ADJCHG: Process \d+, Nbr (\S+) on (\S+) from FULL to DOWN, Neighbor Down: (.+)$'
+    cause: "{device} lost OSPF neighbor {1} on {2} ({3})"
+    weight: 20
+    symptom: true

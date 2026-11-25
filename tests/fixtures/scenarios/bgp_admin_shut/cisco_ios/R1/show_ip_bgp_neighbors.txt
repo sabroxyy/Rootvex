@@ -1,0 +1,2 @@
+BGP neighbor is 10.0.12.2,  remote AS 65002, external link
+  BGP state = Idle, Administratively shut down

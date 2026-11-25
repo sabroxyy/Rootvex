@@ -1,0 +1,26 @@
+# Interface down or flapping. Unused interfaces without an IP address are ignored.
+id: interface_down
+title: Interface down or flapping
+keywords: [interface, link, port, down, flapping, flap, shutdown, errors]
+checks:
+  - command: show ip interface brief
+    why: Status and protocol of every interface
+  - command: show logging | include UPDOWN
+    why: Up/down history shows flapping
+analyzers: [interface_flaps]
+signatures:
+  - command: show ip interface brief
+    regex: '^(\S+)\s+(\d+\.\d+\.\d+\.\d+)\s+\w+\s+\w+\s+administratively down\s+down\s*$'
+    cause: "{device} {1} ({2}) is administratively shut down"
+    fix: "On {device}: interface {1} / no shutdown"
+    weight: 95
+  - command: show ip interface brief
+    regex: '^(\S+)\s+(\d+\.\d+\.\d+\.\d+)\s+\w+\s+\w+\s+down\s+down\s*$'
+    cause: "{device} {1} ({2}) is down/down: no link (cable, peer port shut, or peer device down)"
+    fix: Check the cable / GNS3 link and the far-end port status
+    weight: 85
+  - command: show ip interface brief
+    regex: '^(\S+)\s+(\d+\.\d+\.\d+\.\d+)\s+\w+\s+\w+\s+up\s+down\s*$'
+    cause: "{device} {1} ({2}) is up/down: link up but line protocol down (keepalive or encapsulation mismatch, or peer problem)"
+    fix: Compare encapsulation and keepalives with the far end
+    weight: 80

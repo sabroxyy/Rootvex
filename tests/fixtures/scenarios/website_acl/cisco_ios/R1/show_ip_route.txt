@@ -1,0 +1,3 @@
+Gateway of last resort is 10.0.12.2 to network 0.0.0.0
+
+S*   0.0.0.0/0 [1/0] via 10.0.12.2
