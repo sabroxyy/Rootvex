@@ -19,4 +19,6 @@ class AgentState(TypedDict, total=False):
     executed: list[tuple[str, str]]  # (device, command) pairs that really ran
     outputs: dict[str, str]  # "device|command" (normalised) -> text the device returned
     limits_hit: str | None
+    playbook: str  # title of the playbook that ran, "" if none
+    findings: list  # rootvex.playbooks.Finding, best first
     report: Report

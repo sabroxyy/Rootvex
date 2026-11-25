@@ -100,7 +100,9 @@ def ask(
 
     try:
         with console.status(f"Troubleshooting with {s.llm.model}..."):
-            state = run_agent(question, build_llm(s.llm), tools, s.agent, names)
+            state = run_agent(
+                question, build_llm(s.llm), tools, s.agent, names, playbooks=_playbooks()
+            )
     except openai.APITimeoutError:  # subclass of APIConnectionError, so it must come first
         console.print(
             f"[red]The model did not answer within {s.llm.request_timeout_s}s.[/red] "
@@ -159,3 +161,9 @@ def web(
 
 if __name__ == "__main__":
     app()
+
+
+def _playbooks():
+    from rootvex.playbooks import load_playbooks, playbook_dir
+
+    return load_playbooks(playbook_dir())

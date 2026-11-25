@@ -81,6 +81,7 @@ def create_app(
 
         from rootvex.agent.graph import run_agent
         from rootvex.llm import build_llm
+        from rootvex.playbooks import load_playbooks, playbook_dir
 
         try:
             tools, names = tools_factory(mode)
@@ -92,6 +93,7 @@ def create_app(
                 settings.agent,
                 names,
                 on_event=lambda e: store.add_event(run_id, e),
+                playbooks=load_playbooks(playbook_dir()),
             )
             store.finish(run_id, state["report"].model_dump())
         except openai.APITimeoutError:
