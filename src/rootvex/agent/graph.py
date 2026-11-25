@@ -13,7 +13,7 @@ from __future__ import annotations
 
 import re
 import time
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 
 import structlog
 from langchain_core.language_models.chat_models import BaseChatModel
@@ -58,8 +58,18 @@ def build_graph(
     tools: Sequence[BaseTool],
     cfg: AgentSettings,
     devices: Sequence[str] = (),
+    on_event: Callable[[dict], None] | None = None,
 ):
     tools_by_name = {t.name: t for t in tools}
+
+    def emit(event: dict) -> None:
+        # Progress for a live UI; a failing listener must never break a run.
+        if on_event:
+            try:
+                on_event(event)
+            except Exception:  # noqa: BLE001
+                log.warning("on_event_failed", event_type=event.get("type"))
+
     llm_with_tools = llm.bind_tools(list(tools)) if tools else llm
 
     def time_left(state: AgentState) -> bool:
@@ -74,6 +84,7 @@ def build_graph(
         reply = _call_llm(llm, [SystemMessage(prompts.SYSTEM), HumanMessage(msg)], "plan")
         plan = str(reply.content).strip()
         log.info("plan", plan=plan)
+        emit({"type": "plan", "plan": plan})
         collect = prompts.COLLECT.format(question=state["question"], plan=plan)
         return {"plan": plan, "messages": [SystemMessage(prompts.SYSTEM), HumanMessage(collect)]}
 
@@ -102,6 +113,15 @@ def build_graph(
             log.info(
                 "tool_call", tool=call["name"], args=call["args"], step=steps, result=result[:2000]
             )
+            emit(
+                {
+                    "type": "tool",
+                    "step": steps,
+                    "tool": call["name"],
+                    "args": call["args"],
+                    "result": result,
+                }
+            )
             out.append(ToolMessage(content=result, tool_call_id=call["id"], name=call["name"]))
         return {"messages": out, "steps": steps, "executed": executed}
 
@@ -116,6 +136,7 @@ def build_graph(
             ev.verified = (_norm(ev.device), _norm(ev.command)) in ran
         report.limits_hit = limit
         log.info("report", report=report.model_dump())
+        emit({"type": "report", "report": report.model_dump()})
         return {"report": report}
 
     # --- routing -----------------------------------------------------------
@@ -166,13 +187,17 @@ def run_agent(
     tools: Sequence[BaseTool],
     cfg: AgentSettings,
     devices: Sequence[str] = (),
+    on_event: Callable[[dict], None] | None = None,
 ):
-    """Run one troubleshooting session and return the final state (with `report`)."""
+    """Run one troubleshooting session and return the final state (with `report`).
+
+    on_event, if given, receives progress events: plan, tool (one per call), report.
+    """
     run_id = new_run_id()
     structlog.contextvars.bind_contextvars(run_id=run_id)
     log.info("run_start", question=question, max_steps=cfg.max_steps, timeout_s=cfg.timeout_s)
     try:
-        graph = build_graph(llm, tools, cfg, devices)
+        graph = build_graph(llm, tools, cfg, devices, on_event=on_event)
         # Each step is ~2 graph hops; give LangGraph headroom above our own limit.
         state = graph.invoke(
             {"question": question, "steps": 0, "started_at": time.monotonic(), "executed": []},
