@@ -33,3 +33,27 @@ web:
   port: 8000
   user: engineer
   db_file: data/rootvex.db
+
+router:
+  # Optional cloud models for rootvex.router. Keep "local" for anything with real customer data.
+  # local  = everything on the llm: model above; nothing leaves the network
+  # hybrid = device output summarized locally; only the redacted summary goes to the cloud
+  # cloud  = Gemini reads, Claude reasons, Gemini reviews; everything redacted first
+  mode: local
+  analyze:
+    base_url: https://generativelanguage.googleapis.com/v1beta/openai/
+    model: gemini-2.5-flash          # check Google's docs for current model names
+    api_key_env: GEMINI_API_KEY
+  reason:
+    base_url: https://api.anthropic.com/v1/
+    model: claude-sonnet-5-5         # check Anthropic's docs for current model names
+    api_key_env: ANTHROPIC_API_KEY
+  review:
+    base_url: https://generativelanguage.googleapis.com/v1beta/openai/
+    model: gemini-2.5-flash
+    api_key_env: GEMINI_API_KEY
+  redact_before_cloud: true
+  extra_terms: []                    # e.g. company or site names to hide
+  request_timeout_s: 120
+  max_tokens: 2048
+  log_redacted_prompts: true         # audit copy of exactly what left the network

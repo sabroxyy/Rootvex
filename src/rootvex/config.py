@@ -36,6 +36,51 @@ class LLMSettings(BaseModel):
     reasoning_effort: str | None = None
 
 
+class EndpointSettings(BaseModel):
+    """A cloud model behind an OpenAI-compatible API. The key is read from api_key_env."""
+
+    base_url: str
+    model: str
+    api_key_env: str
+
+
+class RouterSettings(BaseModel):
+    """Optional cloud models (rootvex.router). Default mode keeps everything local.
+
+    local  - every step uses the llm: section above; nothing leaves the network
+    hybrid - raw device output is summarized locally; only the redacted summary goes out
+    cloud  - every step may use cloud models; everything sent is redacted first
+    """
+
+    mode: Literal["local", "hybrid", "cloud"] = "local"
+    analyze: EndpointSettings = Field(
+        default_factory=lambda: EndpointSettings(
+            base_url="https://generativelanguage.googleapis.com/v1beta/openai/",
+            model="gemini-2.5-flash",
+            api_key_env="GEMINI_API_KEY",
+        )
+    )
+    reason: EndpointSettings = Field(
+        default_factory=lambda: EndpointSettings(
+            base_url="https://api.anthropic.com/v1/",
+            model="claude-sonnet-5-5",
+            api_key_env="ANTHROPIC_API_KEY",
+        )
+    )
+    review: EndpointSettings = Field(
+        default_factory=lambda: EndpointSettings(
+            base_url="https://generativelanguage.googleapis.com/v1beta/openai/",
+            model="gemini-2.5-flash",
+            api_key_env="GEMINI_API_KEY",
+        )
+    )
+    redact_before_cloud: bool = True
+    extra_terms: list[str] = Field(default_factory=list)  # company/site names to hide
+    request_timeout_s: int = 120
+    max_tokens: int = 2048
+    log_redacted_prompts: bool = True  # keep a copy of exactly what left the network
+
+
 class AgentSettings(BaseModel):
     max_steps: int = Field(12, ge=1, le=100)
     timeout_s: int = Field(300, ge=5)
@@ -87,6 +132,7 @@ class Settings(BaseSettings):
     lab: LabSettings = Field(default_factory=LabSettings)
     logging: LoggingSettings = Field(default_factory=LoggingSettings)
     web: WebSettings = Field(default_factory=WebSettings)
+    router: RouterSettings = Field(default_factory=RouterSettings)
 
     @classmethod
     def settings_customise_sources(
