@@ -40,7 +40,8 @@ REPORT = """Write the final report as a single JSON object, nothing else, with t
   "sources": []
 }}
 Only list evidence from commands you actually ran in this conversation. Each quote must
-be copied character for character from the output of THAT device for THAT command;
+be ONE line (not a whole block), copied character for character from the output of
+THAT device for THAT command;
 evidence whose quote cannot be found there is marked UNVERIFIED.{limit_note}"""
 
 PLAYBOOK = """

@@ -38,3 +38,26 @@ def test_r2_line_credited_to_r1_is_rejected():
 def test_missing_quote_or_command_is_rejected():
     assert check("R2", "show ip ospf interface", "").check == "no quote from the output"
     assert check("R2", "show ip route", "anything").check == "command was not run on this device"
+
+
+def test_multi_line_quote_is_trimmed_to_the_relevant_line():
+    out = (
+        "Gi1/0 is up, line protocol is up\n"
+        "  Internet Address 10.0.12.1/30, Area 0\n"
+        "    No Hellos (Passive interface)\n"
+    )
+    report = Report(
+        likely_cause="x",
+        evidence=[
+            Evidence(
+                device="R1",
+                command="show ip ospf interface",
+                finding="Gi1/0 is a passive interface",
+                quote=out,
+            )
+        ],
+    )
+    verify_evidence(report, {("r1", "show ip ospf interface"): out})
+    ev = report.evidence[0]
+    assert ev.verified and ev.quote == "No Hellos (Passive interface)"
+    assert "trimmed from 3 lines" in ev.check

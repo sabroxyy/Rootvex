@@ -109,6 +109,7 @@ def build_graph(
             targets = devices_in(question, list(devices)) or list(devices)
             emit({"type": "playbook", "playbook": book.title, "devices": targets})
             ran: dict[tuple[str, str], str] = {}
+            cache: dict[str, str] = dict(state.get("cache", {}))
             shown: list[str] = []
             budget = cfg.max_steps
             for check in book.checks:
@@ -132,6 +133,8 @@ def build_graph(
                         }
                     )
                     shown.append(result)
+                    if not result.startswith(("DENIED", "ERROR")):
+                        cache[f"{_norm(device)}|{_norm(check.command)}"] = result
                     for dev, command, text in _OUTPUT_BLOCK.findall(result):
                         executed.append((dev, command))
                         outputs[f"{_norm(dev)}|{_norm(command)}"] = text
@@ -164,6 +167,7 @@ def build_graph(
             "executed": executed,
             "playbook": book.title if book and tool else "",
             "findings": findings,
+            "cache": cache if book and tool else {},
         }
 
     def agent_node(state: AgentState) -> dict:
@@ -175,9 +179,15 @@ def build_graph(
         steps = state.get("steps", 0)
         executed = list(state.get("executed", []))
         outputs = dict(state.get("outputs", {}))
+        cache = state.get("cache", {})
         out: list[ToolMessage] = []
         for call in last.tool_calls:
-            if steps >= cfg.max_steps:
+            args = call.get("args") or {}
+            key = f"{_norm(str(args.get('device', '')))}|{_norm(str(args.get('command', '')))}"
+            if call["name"] == "run_show_command" and key in cache:
+                # The playbook already ran this: reuse it, no SSH, no step used.
+                result = cache[key] + "\n(already collected by the playbook; not run again)"
+            elif steps >= cfg.max_steps:
                 result = f"ERROR: step limit ({cfg.max_steps}) reached; no more tool calls."
             elif call["name"] not in tools_by_name:
                 result = f"ERROR: unknown tool {call['name']!r}."

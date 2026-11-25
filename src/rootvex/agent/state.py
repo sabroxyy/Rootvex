@@ -21,4 +21,5 @@ class AgentState(TypedDict, total=False):
     limits_hit: str | None
     playbook: str  # title of the playbook that ran, "" if none
     findings: list  # rootvex.playbooks.Finding, best first
+    cache: dict[str, str]  # "device|command" -> tool result the playbook already got
     report: Report

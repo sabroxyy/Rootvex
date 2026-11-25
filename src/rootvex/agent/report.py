@@ -93,6 +93,21 @@ def verify_evidence(report: Report, outputs: dict[tuple[str, str], str]) -> None
             ev.verified, ev.check = False, "quote not found in this device's output"
         else:
             ev.verified, ev.check = True, "quote found in the output"
+            lines = [ln.strip() for ln in ev.quote.splitlines() if ln.strip()]
+            if len(lines) > 1:
+                ev.quote = _best_line(lines, ev.finding)
+                ev.check = f"quote found in the output (trimmed from {len(lines)} lines)"
+
+
+def _best_line(lines: list[str], finding: str) -> str:
+    """The quoted line sharing most words with the finding (later line wins a tie)."""
+
+    def words(text: str) -> set[str]:
+        return {w for w in re.findall(r"[a-z]\w+", text.lower()) if len(w) >= 4}
+
+    want = words(finding)
+    scored = [(len(want & words(ln)), i) for i, ln in enumerate(lines)]
+    return lines[max(scored)[1]]
 
 
 def add_code_findings(report: Report, playbook: str, findings: list) -> None:

@@ -100,3 +100,29 @@ def test_no_playbook_for_unrelated_question():
         playbooks=load_playbooks(playbook_dir()),
     )
     assert state["report"].playbook == "" and state["report"].likely_cause == "n/a"
+
+
+def test_model_repeating_a_playbook_command_reuses_the_output():
+    from tests.fake_llm import tool_call
+
+    tools, names = tools_for("ospf_passive")
+    llm = ScriptedChatModel(
+        script=[
+            AIMessage(content="plan"),
+            tool_call("run_show_command", {"device": "R1", "command": "show ip ospf neighbor"}),
+            AIMessage(content="done"),
+            AIMessage(content='{"likely_cause": "passive", "confidence": "high"}'),
+        ],
+        calls=[],
+    )
+    state = run_agent(
+        "OSPF R1 R2 down",
+        llm,
+        tools,
+        AgentSettings(),
+        names,
+        playbooks=load_playbooks(playbook_dir()),
+    )
+    assert state["steps"] == 0  # reused, not run again
+    tool_msg = [m for m in state["messages"] if m.type == "tool"][0]
+    assert "already collected by the playbook" in tool_msg.content

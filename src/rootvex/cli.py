@@ -112,8 +112,15 @@ def ask(
 
     try:
         with console.status(f"Troubleshooting with {s.llm.model}..."):
+            events: list[dict] = []
             state = run_agent(
-                question, build_llm(s.llm), tools, s.agent, names, playbooks=_playbooks()
+                question,
+                build_llm(s.llm),
+                tools,
+                s.agent,
+                names,
+                on_event=events.append,
+                playbooks=_playbooks(),
             )
     except openai.APITimeoutError:  # subclass of APIConnectionError, so it must come first
         console.print(
@@ -135,13 +142,15 @@ def ask(
     console.rule("Plan")
     console.print(state.get("plan", ""), markup=False)
     if show_steps:
-        console.rule("Tool calls")
+        checks = [e for e in events if e.get("type") == "tool" and e.get("tool") == "playbook"]
+        if checks:
+            console.rule(f"Playbook checks: {state.get('playbook', '')}")
+            for e in checks:
+                console.print(_clip(str(e["result"])), markup=False)
+        console.rule("Tool calls (model)")
         for m in state["messages"]:
             if isinstance(m, ToolMessage):
-                text = m.content
-                if len(text) > 1500:  # display only; the model saw the full output
-                    text = text[:1500] + f"\n[... {len(m.content) - 1500} more chars not shown]"
-                console.print(text, markup=False)
+                console.print(_clip(str(m.content)), markup=False)
     console.rule("Report")
     console.print(state["report"].to_text(), markup=False)
     console.print(f"\n[dim]run_id={state['run_id']}  steps={state['steps']}  log={log_file}[/dim]")
@@ -179,3 +188,10 @@ def _playbooks():
     from rootvex.playbooks import load_playbooks, playbook_dir
 
     return load_playbooks(playbook_dir())
+
+
+def _clip(text: str, limit: int = 1500) -> str:
+    """Display only; the model saw the full output."""
+    if len(text) <= limit:
+        return text
+    return text[:limit] + f"\n[... {len(text) - limit} more chars not shown]"
