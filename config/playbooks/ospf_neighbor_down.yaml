@@ -19,11 +19,13 @@ signatures:
     cause: "{device} logs OSPF packets with a mismatched area ID from {1}"
     fix: Put both ends of the link in the same OSPF area
     weight: 93
+    tags: [area]
   - command: show logging
     regex: 'OSPF-\d-DUP_RTRID'
     cause: "{device} logs a duplicate OSPF router ID"
     fix: Give each router a unique 'router-id' and clear the OSPF process
     weight: 90
+    tags: [router id, router-id]
   - command: show logging
     regex: 'OSPF-5-ADJCHG: Process \d+, Nbr (\S+) on (\S+) from FULL to DOWN, Neighbor Down: (.+)$'
     cause: "{device} lost OSPF neighbor {1} on {2} ({3})"

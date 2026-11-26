@@ -452,15 +452,17 @@ Changes from section 3.4:
 - **Quote check (from 11.5):** `Evidence.quote` must be in that device's
   output for that command (case and spacing ignored); code sets `verified` and
   `check`. The model's evidence and the code findings get the same check.
-- **Report:** new fields `playbook` and `code_findings`. Code findings' proof
-  lines are added as evidence. If the model's answer is weak (low confidence
-  or empty), the best code cause becomes the likely cause at medium
-  confidence; a confident model answer is kept.
+- **Report:** new fields `playbook`, `code_findings` and `model_view`. Code
+  findings' proof lines are added as evidence. The best code cause wins unless
+  the model's cause or fix contains one of that finding's `tags`; the model's
+  different answer is kept in `model_view`. (First design kept any confident
+  model answer; a live run showed the 3B model confidently wrong, so code with
+  proof now takes precedence.)
 - **Budget:** playbook checks are capped at `max_steps` commands and do not
   use the model's steps. Devices = those named in the question, else all.
 - **Proof:** 11 recorded faults in IOS 12.4 format + 1 healthy case
   (`tests/fixtures/scenarios/`), each found with every proof line verified;
-  `lab/FAULTS.md` gives the same faults to plant in GNS3. 86 tests pass.
+  `lab/FAULTS.md` gives the same faults to plant in GNS3. 89 tests pass.
 - **Not done in Phase 4:** live-lab proof (needs the workstation), DNS and
   PC-gateway checks for "can't reach website" (hosts are not managed devices),
   err-disable/duplex faults (SW1 is unmanaged).

@@ -45,7 +45,7 @@ def test_weak_model_answer_is_replaced_by_the_code_finding():
     )
     report = state["report"]
     assert report.playbook == "OSPF neighbor down"
-    assert "passive" in report.likely_cause and report.confidence == "medium"
+    assert "passive" in report.likely_cause and report.confidence == "high"
     assert "no passive-interface" in report.proposed_fix
     assert report.evidence and all(e.verified for e in report.evidence)
     # The model saw the code findings before it answered.
@@ -126,3 +126,31 @@ def test_model_repeating_a_playbook_command_reuses_the_output():
     assert state["steps"] == 0  # reused, not run again
     tool_msg = [m for m in state["messages"] if m.type == "tool"][0]
     assert "already collected by the playbook" in tool_msg.content
+
+
+def test_confident_but_wrong_model_is_overruled_by_proven_code_finding():
+    # Seen on the workstation: the model said "both routers are DR" with high
+    # confidence while the code had proof of a passive interface.
+    tools, names = tools_for("ospf_passive")
+    wrong = (
+        '{"likely_cause": "Both routers are DR but have not exchanged hellos",'
+        ' "proposed_fix": "check ACLs", "confidence": "high"}'
+    )
+    llm = ScriptedChatModel(
+        script=[AIMessage(content="plan"), AIMessage(content="done"), AIMessage(content=wrong)],
+        calls=[],
+    )
+    state = run_agent(
+        "OSPF neighbor R1 R2 is down",
+        llm,
+        tools,
+        AgentSettings(),
+        names,
+        playbooks=load_playbooks(playbook_dir()),
+    )
+    r = state["report"]
+    assert "passive" in r.likely_cause and r.confidence == "high"
+    assert "no passive-interface" in r.proposed_fix
+    assert r.model_view.startswith("Both routers are DR")
+    assert r.evidence[0].quote == "No Hellos (Passive interface)" and r.evidence[0].verified
+    assert "not supported by the code checks" in r.to_text()

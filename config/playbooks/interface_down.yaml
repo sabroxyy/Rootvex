@@ -14,13 +14,16 @@ signatures:
     cause: "{device} {1} ({2}) is administratively shut down"
     fix: "On {device}: interface {1} / no shutdown"
     weight: 95
+    tags: [shut]
   - command: show ip interface brief
     regex: '^(\S+)\s+(\d+\.\d+\.\d+\.\d+)\s+\w+\s+\w+\s+down\s+down\s*$'
     cause: "{device} {1} ({2}) is down/down: no link (cable, peer port shut, or peer device down)"
     fix: Check the cable / GNS3 link and the far-end port status
     weight: 85
+    tags: [down/down, no link, cable, physical]
   - command: show ip interface brief
     regex: '^(\S+)\s+(\d+\.\d+\.\d+\.\d+)\s+\w+\s+\w+\s+up\s+down\s*$'
     cause: "{device} {1} ({2}) is up/down: link up but line protocol down (keepalive or encapsulation mismatch, or peer problem)"
     fix: Compare encapsulation and keepalives with the far end
     weight: 80
+    tags: [up/down, line protocol, keepalive, encapsulation]

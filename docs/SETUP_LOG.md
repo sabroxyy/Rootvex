@@ -161,7 +161,11 @@ Built in the cloud session on branch `phase4` (no workstation needed):
   ends of a link, playbook node in the graph, web page shows code findings.
 - 11 recorded faults (`tests/fixtures/scenarios/`), `rootvex ask --scenario`,
   fault guide `lab/FAULTS.md`.
-- Results: `uv run ruff check .` → All checks passed; `uv run pytest` → 86 passed.
+- Results: `uv run ruff check .` → All checks passed; `uv run pytest` → 89 passed.
+- First workstation run (`--scenario ospf_passive`): right cause, but the model
+  re-ran playbook commands, quoted whole blocks, and in a second run answered
+  "both routers are DR" with high confidence. Fixed: output reuse, one-line
+  quotes, and code findings with proof overrule a disagreeing model.
 
 To do on the workstation:
 

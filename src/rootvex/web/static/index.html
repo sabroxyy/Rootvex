@@ -220,6 +220,7 @@
     if (r.limits_hit) card.append(el('p', 'warn', `Stopped early (${r.limits_hit}); this report is partial.`));
     const dl = el('dl');
     const add = (k, v) => { dl.append(el('dt', null, k)); const dd = el('dd'); dd.append(v); dl.append(dd); };
+    if (r.model_view) add("Model's view", el('span', 'warn', r.model_view + ' (not supported by the code checks)'));
     if (r.code_findings?.length) {
       const ul = el('ul', 'evidence'); r.code_findings.forEach(c => ul.append(el('li', null, c)));
       add(`Code checks (${r.playbook})`, ul);

@@ -30,6 +30,8 @@ class Finding:
     proof: list[Proof] = field(default_factory=list)
     weight: int = 50  # higher = more specific / more likely the root cause
     symptom: bool = False  # True: describes what is broken, not why
+    # Words that show a model's answer names this same cause (lower case).
+    tags: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -47,6 +49,7 @@ class Signature:
     fix: str = ""
     weight: int = 50
     symptom: bool = False
+    tags: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -115,6 +118,7 @@ def find_signatures(book: Playbook, outputs: dict[tuple[str, str], str]) -> list
                         proof=[Proof(device, command, line)],
                         weight=sig.weight,
                         symptom=sig.symptom,
+                        tags=sig.tags,
                     )
                 )
     return found

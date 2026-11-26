@@ -16,8 +16,10 @@ signatures:
     cause: "{device}: IKE messages fail validation (pre-shared key mismatch)"
     fix: Set the same pre-shared key for this peer on both ends
     weight: 92
+    tags: [pre-shared, preshared, psk, key]
   - command: show logging
     regex: 'IKMP_NO_SA|atts are not acceptable|phase 1 SA policy not acceptable'
     cause: "{device}: phase 1 proposal not accepted (encryption/hash/group/auth mismatch)"
     fix: Make the isakmp policy (encryption, hash, DH group, authentication) match on both ends
     weight: 90
+    tags: [proposal, policy, transform, encryption, hash, group]

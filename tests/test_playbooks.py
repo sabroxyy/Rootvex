@@ -60,6 +60,7 @@ def test_playbook_finds_planted_fault(scenario, question, book_id, expect):
     assert findings, "no findings"
     top = findings[0]
     assert expect.lower() in top.cause.lower(), [f.cause for f in findings]
+    assert top.tags, "a cause needs tags so a model answer can agree with it"
     # Every proof line must pass the same quote check the model's evidence gets.
     report = Report(
         likely_cause=top.cause,

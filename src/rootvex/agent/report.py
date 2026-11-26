@@ -32,6 +32,8 @@ class Report(BaseModel):
     # Set by code: which playbook ran and what its code checks found (best first).
     playbook: str = ""
     code_findings: list[str] = Field(default_factory=list)
+    # The model's own cause, kept when code checks found a different, proven cause.
+    model_view: str = ""
 
     def to_text(self) -> str:
         lines = [f"Likely cause: {self.likely_cause}", f"Confidence: {self.confidence}"]
@@ -39,6 +41,8 @@ class Report(BaseModel):
             lines.append(f"NOTE: stopped early - {self.limits_hit}; this report is partial.")
         if self.playbook:
             lines.append(f"Playbook: {self.playbook}")
+        if self.model_view:
+            lines.append(f"Model's view (not supported by the code checks): {self.model_view}")
         if self.code_findings:
             lines.append("Code checks found:")
             lines += [f"  - {c}" for c in self.code_findings]
@@ -113,21 +117,34 @@ def _best_line(lines: list[str], finding: str) -> str:
 def add_code_findings(report: Report, playbook: str, findings: list) -> None:
     """Add the playbook's findings: their proof lines become evidence (checked later).
 
-    If the model gave no usable cause, the best code finding becomes the cause.
+    The best code cause wins unless the model's answer names the same cause (one of
+    its tags). The model's different answer is kept as model_view, not hidden.
     """
     report.playbook = playbook
     causes = [f for f in findings if not f.symptom]
     report.code_findings = [f.cause for f in findings]
     have = {(_squash(e.device), _squash(e.quote)) for e in report.evidence}
+    extra = []
     for f in causes[:3] or findings[:2]:
         for p in f.proof:
             if (_squash(p.device), _squash(p.quote)) not in have:
-                report.evidence.append(
+                extra.append(
                     Evidence(device=p.device, command=p.command, finding=f.cause, quote=p.quote)
                 )
                 have.add((_squash(p.device), _squash(p.quote)))
+    if not causes:
+        report.evidence += extra
+        return
+    top = causes[0]
+    model_text = f"{report.likely_cause} {report.proposed_fix}".lower()
+    if any(t in model_text for t in top.tags):
+        report.evidence += extra
+        report.proposed_fix = report.proposed_fix or top.fix
+        return
     weak = report.confidence == "low" or not report.likely_cause.strip()
-    if causes and weak:
-        report.likely_cause = causes[0].cause
-        report.proposed_fix = report.proposed_fix or causes[0].fix
-        report.confidence = "medium"
+    if not weak:
+        report.model_view = report.likely_cause
+    report.likely_cause = top.cause
+    report.proposed_fix = top.fix or report.proposed_fix
+    report.confidence = "high" if top.weight >= 85 else "medium"
+    report.evidence = extra + report.evidence  # the proof for the cause comes first

@@ -77,7 +77,7 @@ file names there may change.
   R2 area 1) with high confidence.
 - Read-only device tools with a deny-by-default Cisco IOS allowlist, a lab-only
   inventory check, secret redaction, and untrusted-output wrapping.
-- 86 automated tests pass (`uv run pytest`), no devices or model needed.
+- 89 automated tests pass (`uv run pytest`), no devices or model needed.
 - The whole GNS3 lab is described as code (`lab/`) and builds with one command.
 - Health checks for the workstation: GPU (`lab/check_gpu.sh`) and GNS3
   (`lab/check_gns3_env.sh`).
@@ -496,9 +496,17 @@ plan ─▶ playbook ─▶ agent ⇄ tools ─▶ report
 
 - Playbook checks have their own budget (up to `max_steps` commands); they do
   not use the model's 12 steps.
-- If the model answers with low confidence or no cause, the best code finding
-  becomes the likely cause (confidence medium). A confident model answer is kept,
-  and the code findings are still shown beside it.
+- **Code with proof beats the model.** If code found a root cause and the
+  model's answer does not name it (checked by the finding's tags, e.g.
+  "passive", "mtu", "area"), the code cause becomes the likely cause and its fix
+  the proposed fix (confidence high for specific causes, medium otherwise). The
+  model's different answer is still shown as *Model's view (not supported by
+  the code checks)*. If the model names the same cause, its answer is kept.
+  Why: on the workstation the 3B model said "both routers are DR" with high
+  confidence while the code had the passive-interface line as proof.
+- Commands the model asks for that the playbook already ran are reused (no
+  second SSH session, no step used). Multi-line quotes are trimmed to the one
+  line that matches the finding.
 
 **The playbooks** (`config/playbooks/*.yaml`; code in `src/rootvex/playbooks/`)
 
@@ -639,6 +647,7 @@ Include the device, the symptom, and what changed:
 | Confidence | low / medium / high |
 | Playbook | Which playbook ran first (blank if none matched) |
 | Code checks found | What code found in the outputs, best first; *(symptom)* = what is broken, not why |
+| Model's view | Shown only when the model's answer differs from a proven code finding; the code finding is used as the likely cause |
 | Evidence | Device, exact command, finding and the quoted line; **UNVERIFIED** with a reason if the command did not run on that device or the quote is not in its output |
 | Proposed fix | Suggested config, **not applied** |
 | Next steps | What to check next |
@@ -735,6 +744,7 @@ uv sync && uv run pytest
 | 18 | "Host identification has changed" | Each rebuild gives routers new SSH keys | Lab-only `StrictHostKeyChecking no` / `UserKnownHostsFile /dev/null` |
 | 19 | Live run credited R2's Tunnel0 to R1 | Evidence was only checked for "command ran", not content | Quote check: each finding quotes a line that must be in that device's output |
 | 20 | Small model stopped after "no neighbors" | No checklist | Playbooks run fixed checks in code first; analyzers compare both ends |
+| 22 | Model ignored the proven passive-interface finding and answered "both routers are DR", confidence high | Rule kept any confident model answer | Code cause wins unless the model names it (tags); model's answer shown as *Model's view* |
 | 21 | Gemini review suggested OSPF outputs that IOS does not print | Reviewer model invented output formats | Recorded scenarios are written from real IOS 12.4 formats; live output wins |
 
 Lessons:

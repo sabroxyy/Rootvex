@@ -18,6 +18,7 @@ signatures:
     cause: "{device}: neighbor {1} reports a bad remote AS (remote-as configured wrong on one side)"
     fix: Make 'neighbor <ip> remote-as' match the peer's real AS number
     weight: 94
+    tags: [remote as, remote-as, wrong as, as number]
   - command: show ip bgp neighbors
     regex: 'Last reset .*(?:BGP Notification sent|Peer closed|Hold Timer Expired).*'
     cause: "{device} shows a BGP reset: see the quoted reason"

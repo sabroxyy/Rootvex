@@ -108,6 +108,7 @@ def ospf_compare(outputs: dict) -> list[Finding]:
                     f"statement on the side that is wrong)",
                     proof=proof("area_line"),
                     weight=95,
+                    tags=["area"],
                 )
             )
         if a.get("hello") and b.get("hello") and (a["hello"], a["dead"]) != (b["hello"], b["dead"]):
@@ -118,6 +119,7 @@ def ospf_compare(outputs: dict) -> list[Finding]:
                     fix="Set the same 'ip ospf hello-interval' and 'ip ospf dead-interval' on both",
                     proof=proof("timer_line"),
                     weight=90,
+                    tags=["hello", "dead", "timer"],
                 )
             )
         for dev, iface, info in ((d1, i1, a), (d2, i2, b)):
@@ -129,6 +131,7 @@ def ospf_compare(outputs: dict) -> list[Finding]:
                         fix=f"On {dev}: router ospf <pid> / no passive-interface {iface}",
                         proof=[Proof(dev, info["command"], info["passive_line"])],
                         weight=92,
+                        tags=["passive"],
                     )
                 )
         if "auth" in a and "auth" in b and a["auth"] != b["auth"]:
@@ -138,6 +141,7 @@ def ospf_compare(outputs: dict) -> list[Finding]:
                     fix="Use the same OSPF authentication type and key on both ends",
                     proof=proof("auth_line"),
                     weight=88,
+                    tags=["auth"],
                 )
             )
         if a.get("nettype") and b.get("nettype") and a["nettype"] != b["nettype"]:
@@ -148,6 +152,7 @@ def ospf_compare(outputs: dict) -> list[Finding]:
                     fix="Use the same 'ip ospf network' type on both ends",
                     proof=proof("nettype_line"),
                     weight=70,
+                    tags=["network type"],
                 )
             )
     return findings
@@ -182,6 +187,7 @@ def ospf_neighbors(outputs: dict) -> list[Finding]:
                         "(protocol 89, 224.0.0.5)",
                         proof=[Proof(device, "show ip ospf neighbor", line)],
                         weight=75,
+                        tags=["init", "one-way", "one way", "access-list", "acl"],
                     )
                 )
             elif state in ("EXSTART", "EXCHANGE"):
@@ -193,6 +199,7 @@ def ospf_neighbors(outputs: dict) -> list[Finding]:
                         "(or use 'ip ospf mtu-ignore')",
                         proof=[Proof(device, "show ip ospf neighbor", line)],
                         weight=85,
+                        tags=["mtu"],
                     )
                 )
     return findings
@@ -228,6 +235,12 @@ def ospf_not_enabled(outputs: dict) -> list[Finding]:
                                 "(network statement or 'ip ospf <pid> area <area>')",
                                 proof=[Proof(device, "show ip interface brief", m[0].strip())],
                                 weight=80,
+                                tags=[
+                                    "not running ospf",
+                                    "not in ospf",
+                                    "network statement",
+                                    "not enabled",
+                                ],
                             )
                         )
     return findings
@@ -254,6 +267,7 @@ def interface_flaps(outputs: dict) -> list[Finding]:
                         fix="Check the physical link, duplex/speed and errors on both ends",
                         proof=[Proof(device, "show logging", lines[-1])],
                         weight=88,
+                        tags=["flap"],
                     )
                 )
     return findings
@@ -276,16 +290,23 @@ def bgp_sessions(outputs: dict) -> list[Finding]:
             if "admin" in state.lower():
                 cause = f"{device}: BGP neighbor {m[1]} is administratively shut down"
                 fix = f"On {device}: router bgp <as> / no neighbor {m[1]} shutdown"
-                weight = 95
+                weight, symptom, tags = 95, False, ["shut"]
             else:
                 cause = (
                     f"{device}: BGP neighbor {m[1]} (AS {m[2]}) is {state}, not Established: "
                     "TCP 179 not completing (no route to peer, wrong peer address/AS, ACL)"
                 )
                 fix = "Check reachability to the peer, the neighbor address and remote-as"
-                weight = 30
+                weight, symptom, tags = 30, True, ["active", "idle", "established"]
             findings.append(
-                Finding(cause, fix, [Proof(device, "show ip bgp summary", line)], weight, True)
+                Finding(
+                    cause,
+                    fix,
+                    [Proof(device, "show ip bgp summary", line)],
+                    weight,
+                    symptom,
+                    tags,
+                )
             )
     return findings
 
@@ -309,6 +330,7 @@ def ipsec_state(outputs: dict) -> list[Finding]:
                     [Proof(device, "show crypto isakmp sa", _line(text, r"dst\s+src") or "")],
                     35,
                     True,
+                    tags=["phase 1", "isakmp", "crypto map", "never start"],
                 )
             )
         for m in rows:
@@ -320,6 +342,7 @@ def ipsec_state(outputs: dict) -> list[Finding]:
                         "Compare isakmp policy and pre-shared key on both ends",
                         [Proof(device, "show crypto isakmp sa", m[0].strip())],
                         60,
+                        tags=["phase 1", "mm_", "pre-shared", "proposal", "key"],
                     )
                 )
     for device, text in _outputs_for(outputs, "show crypto ipsec sa").items():
@@ -337,6 +360,7 @@ def ipsec_state(outputs: dict) -> list[Finding]:
                     "is allowed",
                     [Proof(device, "show crypto ipsec sa", enc or dec)],
                     80,
+                    tags=["decrypt", "one-way", "one way", "crypto acl", "esp"],
                 )
             )
     return findings
@@ -355,6 +379,7 @@ def route_default(outputs: dict) -> list[Finding]:
                     "<next hop>) or the routing protocol that provides it",
                     [Proof(device, "show ip route", "Gateway of last resort is not set")],
                     85,
+                    tags=["default route", "gateway of last resort"],
                 )
             )
     return findings
@@ -376,6 +401,7 @@ def acl_denies(outputs: dict) -> list[Finding]:
                     "change it",
                     [Proof(device, "show ip access-lists", m[0].strip())],
                     60,
+                    tags=["access-list", "acl", "deny"],
                 )
             )
     return findings
