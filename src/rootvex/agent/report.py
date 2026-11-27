@@ -13,8 +13,12 @@ class Evidence(BaseModel):
     device: str
     command: str
     finding: str
-    # Set by the agent, not the model: True only if this command really ran this session.
+    # Exact line copied from that device's output for that command.
+    quote: str = ""
+    # Set by code, not the model: True only if the command ran on that device AND
+    # the quote appears in that output. `check` says why when it is not verified.
     verified: bool = False
+    check: str = ""
 
 
 class Report(BaseModel):
@@ -25,16 +29,30 @@ class Report(BaseModel):
     next_steps: list[str] = Field(default_factory=list)
     sources: list[str] = Field(default_factory=list)
     limits_hit: str | None = None  # e.g. "step limit (12)" - partial report
+    # Set by code: which playbook ran and what its code checks found (best first).
+    playbook: str = ""
+    code_findings: list[str] = Field(default_factory=list)
+    # The model's own cause, kept when code checks found a different, proven cause.
+    model_view: str = ""
 
     def to_text(self) -> str:
         lines = [f"Likely cause: {self.likely_cause}", f"Confidence: {self.confidence}"]
         if self.limits_hit:
             lines.append(f"NOTE: stopped early - {self.limits_hit}; this report is partial.")
+        if self.playbook:
+            lines.append(f"Playbook: {self.playbook}")
+        if self.model_view:
+            lines.append(f"Model's view (not supported by the code checks): {self.model_view}")
+        if self.code_findings:
+            lines.append("Code checks found:")
+            lines += [f"  - {c}" for c in self.code_findings]
         if self.evidence:
             lines.append("Evidence:")
             for e in self.evidence:
-                mark = "" if e.verified else " [UNVERIFIED - command was not run]"
+                mark = "" if e.verified else f" [UNVERIFIED - {e.check or 'not checked'}]"
                 lines.append(f"  - {e.device} `{e.command}`: {e.finding}{mark}")
+                if e.quote:
+                    lines.append(f'      quote: "{e.quote}"')
         if self.proposed_fix:
             lines.append(f"Proposed fix (not applied): {self.proposed_fix}")
         if self.next_steps:
@@ -58,3 +76,105 @@ def parse_report(text: str) -> Report:
         confidence="low",
         next_steps=["Model did not return valid JSON; review the raw answer above."],
     )
+
+
+def _squash(text: str) -> str:
+    return " ".join(text.lower().split())
+
+
+def verify_evidence(report: Report, outputs: dict[tuple[str, str], str]) -> None:
+    """Mark each evidence item verified only if its quote is in that device's real output.
+
+    outputs maps (device, command), both normalised, to the text the device returned.
+    """
+    for ev in report.evidence:
+        key = (_squash(ev.device), _squash(ev.command))
+        if key not in outputs:
+            ev.verified, ev.check = False, "command was not run on this device"
+        elif not ev.quote.strip():
+            ev.verified, ev.check = False, "no quote from the output"
+        elif _squash(ev.quote) not in _squash(outputs[key]):
+            ev.verified, ev.check = False, "quote not found in this device's output"
+        else:
+            ev.verified, ev.check = True, "quote found in the output"
+            lines = [ln.strip() for ln in ev.quote.splitlines() if ln.strip()]
+            if len(lines) > 1:
+                ev.quote = _best_line(lines, ev.finding)
+                ev.check = f"quote found in the output (trimmed from {len(lines)} lines)"
+
+
+def _best_line(lines: list[str], finding: str) -> str:
+    """The quoted line sharing most words with the finding (later line wins a tie)."""
+
+    def words(text: str) -> set[str]:
+        return {w for w in re.findall(r"[a-z]\w+", text.lower()) if len(w) >= 4}
+
+    want = words(finding)
+    scored = [(len(want & words(ln)), i) for i, ln in enumerate(lines)]
+    return lines[max(scored)[1]]
+
+
+def add_code_findings(report: Report, playbook: str, findings: list) -> None:
+    """Add the playbook's findings: their proof lines become evidence (checked later).
+
+    The best code cause wins unless the model's answer names the same cause (one of
+    its tags). The model's different answer is kept as model_view, not hidden.
+    """
+    report.playbook = playbook
+    causes = [f for f in findings if not f.symptom]
+    report.code_findings = [("OK: " if getattr(f, "ok", False) else "") + f.cause for f in findings]
+    have = {(_squash(e.device), _squash(e.quote)) for e in report.evidence}
+    extra = []
+    for f in causes[:3] or findings[:2]:
+        for p in f.proof:
+            if (_squash(p.device), _squash(p.quote)) not in have:
+                extra.append(
+                    Evidence(device=p.device, command=p.command, finding=f.cause, quote=p.quote)
+                )
+                have.add((_squash(p.device), _squash(p.quote)))
+    healthy = [f for f in findings if getattr(f, "ok", False)]
+    if not causes and healthy:
+        # Code proved the checked parts are working: do not let the model claim a fault.
+        for f in healthy[:4]:
+            for p in f.proof:
+                if (_squash(p.device), _squash(p.quote)) not in have:
+                    extra.append(
+                        Evidence(device=p.device, command=p.command, finding=f.cause, quote=p.quote)
+                    )
+                    have.add((_squash(p.device), _squash(p.quote)))
+        agrees = re.search(
+            r"\b(healthy|no (fault|issue|problem)s?|working (normally|correctly)|is up|"
+            r"are up|full state|in (the )?full)\b",
+            report.likely_cause.lower(),
+        )
+        if report.likely_cause.strip() and not agrees:
+            report.model_view = report.likely_cause
+        report.likely_cause = "No fault found by the code checks: " + "; ".join(
+            f.cause for f in healthy[:4]
+        )
+        report.proposed_fix = ""
+        report.confidence = "medium"
+        report.evidence = extra
+        report.next_steps = [
+            "If you planted a fault, it may not be active yet (e.g. clear the session and "
+            "send traffic), then ask again.",
+            "If users still see a problem, it is outside what these checks cover.",
+        ]
+        return
+    if not causes:
+        report.evidence += extra
+        return
+    top = causes[0]
+    model_text = f"{report.likely_cause} {report.proposed_fix}".lower()
+    names_it = not top.must or any(m in model_text for m in top.must)
+    if names_it and any(t in model_text for t in top.tags):
+        report.evidence += extra
+        report.proposed_fix = report.proposed_fix or top.fix
+        return
+    weak = report.confidence == "low" or not report.likely_cause.strip()
+    if not weak:
+        report.model_view = report.likely_cause
+    report.likely_cause = top.cause
+    report.proposed_fix = top.fix or report.proposed_fix
+    report.confidence = "high" if top.weight >= 85 else "medium"
+    report.evidence = extra + report.evidence  # the proof for the cause comes first

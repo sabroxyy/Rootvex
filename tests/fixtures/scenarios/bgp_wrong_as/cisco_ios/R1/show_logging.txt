@@ -1,0 +1,1 @@
+*Nov 25 10:00:10.123: %BGP-3-NOTIFICATION: received from neighbor 10.0.12.2 2/2 (peer in wrong AS) 2 bytes FDEB

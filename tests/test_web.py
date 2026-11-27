@@ -22,7 +22,12 @@ REPORT = json.dumps(
     {
         "likely_cause": "OSPF area mismatch: R1 Gi0/1 area 0, R2 Gi0/1 area 1.",
         "evidence": [
-            {"device": "R2", "command": "show ip protocols", "finding": "10.0.12.0/30 area 1"}
+            {
+                "device": "R2",
+                "command": "show ip protocols",
+                "finding": "10.0.12.0/30 area 1",
+                "quote": "10.0.12.0 0.0.0.3 area 1",
+            }
         ],
         "proposed_fix": "On R2: network 10.0.12.0 0.0.0.3 area 0",
         "confidence": "high",
@@ -88,10 +93,13 @@ def test_full_run_steps_report_and_decision(tmp_path):
 
     assert run["status"] == "done" and run["user"] == "engineer" and run["mode"] == "recorded"
     assert run["plan"].startswith("1. Check OSPF")
-    tools = [e for e in run["events"] if e["type"] == "tool"]
+    tools = [e for e in run["events"] if e["type"] == "tool" and e["tool"] != "playbook"]
     assert tools[0]["args"]["command"] == "show ip protocols" and "area 1" in tools[0]["result"]
     assert run["report"]["confidence"] == "high"
     assert run["report"]["evidence"][0]["verified"] is True
+    # The OSPF playbook ran first and its code found the area mismatch.
+    assert run["report"]["playbook"] == "OSPF neighbor down"
+    assert any("area mismatch" in c for c in run["report"]["code_findings"])
 
     decided = client.post(
         f"/api/runs/{run_id}/decision", json={"decision": "approved", "note": "lab"}, auth=AUTH
@@ -118,7 +126,7 @@ def test_config_command_is_denied_in_the_web_flow(tmp_path):
         "/api/runs", json={"question": "shut Gi1/0 on R1", "mode": "recorded"}, auth=AUTH
     ).json()["id"]
     run = wait_done(client, run_id)
-    tool = [e for e in run["events"] if e["type"] == "tool"][0]
+    tool = [e for e in run["events"] if e["type"] == "tool" and e["tool"] != "playbook"][0]
     assert tool["result"].startswith("DENIED")
 
 

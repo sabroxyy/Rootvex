@@ -1,0 +1,25 @@
+# Site-to-site IPsec VPN down.
+id: ipsec_vpn_down
+title: IPsec VPN down
+keywords: [ipsec, vpn, tunnel, isakmp, ike, crypto]
+checks:
+  - command: show crypto isakmp sa
+    why: Phase 1 state (QM_IDLE = up, MM_NO_STATE = no reply / mismatch)
+  - command: show crypto ipsec sa
+    why: Phase 2 SAs and encrypt/decrypt counters
+  - command: show logging | include CRYPTO
+    why: IOS logs proposal and pre-shared key failures
+analyzers: [ipsec_state]
+signatures:
+  - command: show logging
+    regex: 'CRYPTO-4-IKMP_BAD_MESSAGE.*from (\S+)|preshared key.*(?:mismatch|failed)|Hash validation failed'
+    cause: "{device}: IKE messages fail validation (pre-shared key mismatch)"
+    fix: Set the same pre-shared key for this peer on both ends
+    weight: 92
+    tags: [pre-shared, preshared, psk, key]
+  - command: show logging
+    regex: 'IKMP_NO_SA|atts are not acceptable|phase 1 SA policy not acceptable'
+    cause: "{device}: phase 1 proposal not accepted (encryption/hash/group/auth mismatch)"
+    fix: Make the isakmp policy (encryption, hash, DH group, authentication) match on both ends
+    weight: 90
+    tags: [proposal, policy, transform, encryption, hash, group]

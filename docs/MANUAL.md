@@ -1,6 +1,6 @@
 # Rootvex Manual
 
-**Version 3 — status as of 23 November 2026: Phase 3 complete.** Rootvex was called NetWarden until 22 November 2026; the rename is complete.
+**Version 5 — status as of 27 November 2026: Phase 4 complete — all 11 lab faults proven on the live lab.** Rootvex was called NetWarden until 22 November 2026; the rename is complete.
 
 A step-by-step guide to building, running, and growing Rootvex: a
 self-hosted AI agent that helps network and security engineers troubleshoot
@@ -40,7 +40,7 @@ file names there may change.
 | 1 | Skeleton | ✅ Done — config, audit log, CLI, tests, CI |
 | 2 | Agent loop | ✅ Done — LangGraph agent, limits, structured report |
 | 3 | Read-only device tools | ✅ Done — tested on recorded outputs and on the live GNS3 lab |
-| 4 | Troubleshooting playbooks | ⬜ **Next** |
+| 4 | Troubleshooting playbooks | ✅ Done — 5 playbooks, quote-checked evidence, code overrules a wrong model; **11/11 faults proven on the live lab** (runbook: `docs/PHASE4_RUNBOOK.md`) |
 | 5 | Knowledge base (RAG) | ⬜ Planned |
 | 6 | Evaluation | ⬜ Planned |
 | 7 | API and web UI | 🟡 Prototype built early: local chat page, login, live steps, Approve/Reject recorded, SQLite |
@@ -48,6 +48,16 @@ file names there may change.
 | 9 | Packaging | ⬜ Planned |
 
 ### What works today
+
+- **Playbooks (Phase 4)**: for OSPF, interface, BGP, IPsec and "can't reach a
+  website" questions, Rootvex runs a fixed list of read-only checks first, and
+  code compares the outputs (both ends of a link). The report shows
+  `Code checks found:` with the cause, and every proof line is quoted.
+- **Quote-checked evidence**: each evidence line must quote an exact line from
+  that device's output for that command; code checks it and marks anything else
+  UNVERIFIED (fixes R2's line being credited to R1).
+- `uv run rootvex ask "OSPF neighbor R1 R2 is down" --scenario ospf_passive`
+  replays a recorded fault with no lab needed.
 
 - **Web prototype** (`uv run rootvex web`, http://127.0.0.1:8000): sign in,
   describe a problem, watch the plan and every command arrive (RAN / DENIED),
@@ -67,7 +77,7 @@ file names there may change.
   R2 area 1) with high confidence.
 - Read-only device tools with a deny-by-default Cisco IOS allowlist, a lab-only
   inventory check, secret redaction, and untrusted-output wrapping.
-- 57 automated tests pass (`uv run pytest`), no devices or model needed.
+- 101 automated tests pass (`uv run pytest`), no devices or model needed.
 - The whole GNS3 lab is described as code (`lab/`) and builds with one command.
 - Health checks for the workstation: GPU (`lab/check_gpu.sh`) and GNS3
   (`lab/check_gns3_env.sh`).
@@ -75,13 +85,20 @@ file names there may change.
   folder `~/projects/rootvex`. `scripts/check_old_name.sh` confirms no old
   names are left on the workstation.
 
-### Known limitations (to fix in Phase 4)
+### Known limitations
 
-- **Findings can be mis-copied.** The check confirms each cited command really
-  ran, but not that the finding text matches that device's output. Seen live:
-  R2's Tunnel0 credited to R1, and R2's Gi1/0 given a wrong address.
-- **The small model reframes or skips steps.** Asked to run `configure terminal`,
-  it ran show commands instead; without a playbook it may stop early.
+- **The 3B model is often wrong on its own.** In the live runs it blamed spare
+  ports, invented IPsec failures and confused symptoms; the code checks caught
+  each case. Outside the 5 playbooks there are no code checks to catch it.
+- **Code findings are only as good as their rules.** Live runs found 4 rule
+  gaps (flap threshold, stale IPsec rows, default route on a BGP router, ACL
+  ranking), all fixed. New faults may find more; record and fix them the same way.
+- **Questions outside the 5 playbooks** still rely on the small model alone,
+  which may stop early. The quote check keeps it honest, not complete.
+- **The quote check proves a line exists, not that the conclusion is right.**
+  Read the quoted lines yourself.
+- **BGP wrong-AS and IPsec key faults show best in the log**; if the log buffer
+  was cleared or the router reloaded, the finding is weaker (state only).
 - **SW1 is unmanaged** (GNS3's built-in switch); the port-security fault needs
   an IOSvL2 image (CML-Personal, optional).
 - **IOS 12.4 needs old SSH algorithms** (SHA-1 key exchange, `ssh-rsa`); Rootvex
@@ -100,12 +117,12 @@ file names there may change.
 Only history lines still say "NetWarden" (the original name decision and the
 "renamed from" notes).
 
-### Next steps (Phase 4)
+### Next steps
 
-1. Playbooks (YAML) for: interface down, OSPF neighbor down, BGP neighbor down,
-   IPsec VPN down, "user can't reach website".
-2. Each finding must quote an exact line from that device's output, checked in code.
-3. Plant each fault in the lab and prove the playbook finds it.
+1. Review branch `phase4` and merge it into `main` (your decision).
+2. Phase 5 — knowledge base (RAG): `docs/PHASE4-5_STEPS.md`.
+3. Optional: speed (one SSH session per router, parallel checks, skip the plan
+   when a playbook matches).
 4. Optional: IOSv + IOSvL2 (CML-Personal) for a managed SW1 —
    `LAB_ROUTER_PLATFORM=iosv`, `LAB_SWITCH_PLATFORM=iosvl2`; configs don't change.
 
@@ -241,6 +258,8 @@ Stage B of the design: HQ, ISP and Branch, with out-of-band management.
 | `lab/build_gns3_lab.py` | Builds the project through the GNS3 API |
 | `lab/README.md` | Build steps, checks, design notes, PNETLab notes |
 | `docs/rootvex-lab-3d.html` | Interactive 3D view: Phase 3 (live), Phase 4 (fault points), Later (FW1, managed SW1) |
+| `docs/rootvex-agent-3d.html` | Interactive 3D view of the agent: every stage a question passes through (plan, playbook, allowlist, lab check, SSH, redact, analyzers, model, quote check, report), with 3 playable situations |
+| `docs/PHASE4_RUNBOOK.md` (+ PDF) | Phase 4 runbook: plant, ask, check and undo each of the 11 lab faults |
 
 **Logical ports.** Router configs say `{{IF_MGMT}}`, `{{IF1}}`…; the platform
 maps them to real names, so the same configs run on any router image:
@@ -458,25 +477,117 @@ uv run rootvex ask "Is OSPF healthy between R1 and R2?" --steps     # live lab
 
 ---
 
-### Phase 4 — Troubleshooting playbooks ⬜ *(next)*
+### Phase 4 — Troubleshooting playbooks ✅
 
-**Goal:** give the small model an ordered checklist so it does not stop early.
-The first OSPF run showed why: without a playbook the 3B model saw "no
-neighbors" and stopped.
+**Goal:** give the small model an ordered checklist so it does not stop early,
+and make every finding provable. The first OSPF run showed why: without a
+playbook the 3B model saw "no neighbors" and stopped.
 
-| Playbook | Core checks | Lab faults to inject |
+**How a run works now**
+
+```
+plan ─▶ playbook ─▶ agent ⇄ tools ─▶ report
+          │                             │
+          ├ choose playbook from the question (keywords)
+          ├ run its checks, in order, on the devices named
+          │   (all devices if none named)
+          ├ code analyzes the outputs → findings with quoted proof lines
+          └ model sees outputs + findings       ├ code findings listed
+                                                ├ their proof lines added as evidence
+                                                ├ every quote checked against real output
+                                                └ weak model answer → best code finding
+```
+
+- Playbook checks have their own budget (up to `max_steps` commands); they do
+  not use the model's 12 steps.
+- **Code with proof beats the model.** If code found a root cause and the
+  model's answer does not name it (checked by the finding's tags, e.g.
+  "passive", "mtu", "area"), the code cause becomes the likely cause and its fix
+  the proposed fix (confidence high for specific causes, medium otherwise). The
+  model's different answer is still shown as *Model's view (not supported by
+  the code checks)*. If the model names the same cause, its answer is kept.
+  Why: on the workstation the 3B model said "both routers are DR" with high
+  confidence while the code had the passive-interface line as proof.
+- Commands the model asks for that the playbook already ran are reused (no
+  second SSH session, no step used). Multi-line quotes are trimmed to the one
+  line that matches the finding.
+
+**The playbooks** (`config/playbooks/*.yaml`; code in `src/rootvex/playbooks/`)
+
+| Playbook | Checks (in order) | What code detects |
 |---|---|---|
-| Interface down / flapping | Status, errors, duplex/speed, logs | `shutdown`, duplex mismatch, err-disable on SW1 |
-| OSPF neighbor down | Interface up, subnet, area, timers, auth, MTU, passive | Area / hello / MTU / auth mismatch, passive |
-| BGP neighbor down | Peer reachability, AS numbers, update-source, ACLs | Wrong remote-as or neighbor IP, ACL on TCP 179 |
-| IPsec VPN down | IKE/IPsec SA, proposals, PSK, peer reachability | PSK or transform-set mismatch, ISP link down |
-| User can't reach website | DNS, gateway, routing, NAT, ACL | Wrong PC gateway, NAT missing, DNS entry missing |
+| OSPF neighbor down | `show ip ospf neighbor`, `show ip ospf interface`, `show ip interface brief`, `show logging \| include OSPF` | Area mismatch, hello/dead mismatch, passive interface, auth mismatch, network-type mismatch, stuck INIT (one-way) or EXSTART/EXCHANGE (MTU), interface not in OSPF, log "mismatched area", duplicate router ID |
+| Interface down / flapping | `show ip interface brief`, `show logging \| include UPDOWN` | Admin down, down/down (no link), up/down (protocol), flapping (≥3 downs in log) |
+| BGP neighbor down | `show ip bgp summary`, `show ip bgp neighbors`, `show ip interface brief`, `show logging \| include BGP` | Neighbor admin shut, not Established (Active/Idle), wrong remote AS (log) |
+| IPsec VPN down | `show crypto isakmp sa`, `show crypto ipsec sa`, `show logging \| include CRYPTO` | No phase 1, phase 1 stuck (MM_*), one-way traffic (encaps > 0, decaps 0), PSK mismatch / proposal not accepted (log) |
+| User can't reach website | `show ip route`, `show ip interface brief`, `show ip nat translations`, `show ip access-lists` | No default route, ACL deny entries with hits |
 
-**Also in Phase 4** (from the Phase 3 live runs): each finding must quote an
-exact line from that device's output, and code checks the quote — the live run
-credited R2's Tunnel0 to R1.
+All playbook commands are in the allowlist (a test checks it). Findings are
+**causes** (ranked by how specific they are) or **symptoms** (what is broken,
+e.g. "no OSPF neighbors"); causes are listed first.
 
-**Done when:** each playbook finds its planted fault in the lab and cites the proof.
+**Quote-checked evidence.** Every evidence item now has a `quote`: one line
+copied from that device's output for that command. Code checks the quote is
+really there (case and spacing ignored). Otherwise the item is UNVERIFIED with
+the reason: *command was not run on this device*, *no quote*, or *quote not
+found in this device's output*. This is what stopped R2's Tunnel0 being
+credited to R1.
+
+**Proof on recorded faults** (`uv run pytest tests/test_playbooks.py`)
+
+| Recorded fault | Top finding |
+|---|---|
+| `ospf_passive` | R1 Gi1/0 is a passive OSPF interface |
+| `ospf_timers` | hello/dead timer mismatch 10/40 vs 5/20 |
+| original R1/R2 fixtures | OSPF area mismatch area 0 vs area 1 |
+| `ospf_mtu` | stuck in EXSTART: MTU mismatch |
+| `interface_shutdown` | Gi1/0 administratively shut down |
+| `interface_flap` | Gi1/0 flapping (3 downs) |
+| `bgp_wrong_as` | neighbor reports bad remote AS |
+| `bgp_admin_shut` | neighbor administratively shut down |
+| `ipsec_psk` | pre-shared key mismatch |
+| `ipsec_oneway` | encrypts 25 packets, decrypts none |
+| `website_no_default` | no default route |
+| `website_acl` | ACL deny entry with 152 hits |
+| `ospf_healthy` | no cause (only healthy output) |
+
+Every proof line of every finding passes the same quote check as the model's
+evidence.
+
+**Test it yourself**
+
+```bash
+uv run pytest -q
+uv run rootvex ask "OSPF neighbor R1 R2 is down" --scenario ospf_passive --steps
+uv run rootvex ask "BGP peer on R1 is down" --scenario bgp_wrong_as
+```
+
+Then on the live lab, follow `lab/FAULTS.md`: plant, ask, check, undo.
+
+**Done when:** each playbook finds its planted fault **in the live lab** and
+cites the proof. Recorded: ✅ 11/11. Live: ✅ 11/11 (27 Nov 2026):
+
+| # | Fault | Live result |
+|---|---|---|
+| 1 | `ospf_passive` | ✅ R1 Gi1/0 passive OSPF interface, confidence high |
+| 2 | `ospf_timers` | ✅ hello/dead mismatch on R1/R2 Gi1/0, 10/40 vs 5/20 |
+| 3 | `ospf_area` | ✅ area mismatch, quotes `Area 0` / `Area 1` |
+| 4 | `ospf_mtu` | ✅ stuck in EXSTART/EXCHANGE, MTU mismatch |
+| 5 | `interface_shutdown` | ✅ interface administratively down, confidence high |
+| 6 | `interface_flap` | ✅ after fix: Gi1/0 went down 2 times in 15 min (first run missed it: needed 3 downs) |
+| 7 | `bgp_wrong_as` | ✅ wrong remote AS between R2 and ISP1 |
+| 8 | `bgp_admin_shut` | ✅ `Idle (Admin)`: neighbor shut down |
+| 9 | `ipsec_psk` | ✅ phase 1 stuck in `MM_NO_STATE` on BR1 and R2 (third run; earlier: wrong question, then fault not active) |
+| 10 | `website_no_default` | ✅ R1 has no default route, quote `Gateway of last resort is not set`; model agreed |
+| 11 | `website_acl` | ✅ after fix: `BLOCK_WEB` denies www, 4 hits; model named the ACL (run 1 ranked a false "no default route" on R2 first) |
+
+**Result: 11/11 proven on the live lab (27 Nov 2026). Phase 4 is done.**
+
+**Add a playbook:** copy a YAML in `config/playbooks/`, set `keywords`, ordered
+`checks` (allowlisted commands only), regex `signatures` (`{1}` = first group,
+`{device}`), and any `analyzers` from `src/rootvex/playbooks/analyzers.py`. Add a
+recorded scenario in `tests/scenarios/make_scenarios.py` and a line in
+`tests/test_playbooks.py`.
 
 ---
 
@@ -531,6 +642,8 @@ Toolkit), full docs, demo script.
 | `uv run rootvex devices [--fixtures]` | List inventory devices (after the lab check) |
 | `uv run rootvex check R1 "show ip route"` | Allowlist dry-run; nothing is sent |
 | `uv run rootvex ask "..." [--fixtures] [--steps]` | Troubleshoot; `--fixtures` uses recorded outputs, `--steps` prints every tool call |
+| `uv run rootvex ask "..." --scenario NAME` | Replay a recorded fault from `tests/fixtures/scenarios/NAME` (list in `lab/FAULTS.md`) |
+| `uv run python -m tests.scenarios.make_scenarios` | Rewrite the recorded fault files |
 | `uv run rootvex web [--host H] [--port P]` | Web prototype at http://127.0.0.1:8000; needs `ROOTVEX_WEB__PASSWORD` in `.env` |
 | `uv run python lab/build_gns3_lab.py [--rebuild] [--start]` | Build the GNS3 lab |
 | `bash lab/check_gpu.sh [--load]` / `bash lab/check_gns3_env.sh` | Health checks |
@@ -552,7 +665,10 @@ Include the device, the symptom, and what changed:
 |---|---|
 | Likely cause | The agent's best explanation |
 | Confidence | low / medium / high |
-| Evidence | Device, exact command, what it showed; **UNVERIFIED** if the command never ran |
+| Playbook | Which playbook ran first (blank if none matched) |
+| Code checks found | What code found in the outputs, best first; *(symptom)* = what is broken, not why; `OK:` = proven healthy |
+| Model's view | Shown only when the model's answer differs from a proven code finding; the code finding is used as the likely cause |
+| Evidence | Device, exact command, finding and the quoted line; **UNVERIFIED** with a reason if the command did not run on that device or the quote is not in its output |
 | Proposed fix | Suggested config, **not applied** |
 | Next steps | What to check next |
 | NOTE: stopped early | A step or time limit was hit; the report is partial |
@@ -646,6 +762,16 @@ uv sync && uv run pytest
 | 16 | "LAB_DEVICE_PASSWORD is not set" | Only `ROOTVEX_*` keys were read from `.env` | `.env` values are exported to the environment at start-up |
 | 17 | R1 reported "key created" when it had a key | A stale console prompt was read as the end of `show ip ssh` | Helper waits for each command's echo; key kept, reported correctly |
 | 18 | "Host identification has changed" | Each rebuild gives routers new SSH keys | Lab-only `StrictHostKeyChecking no` / `UserKnownHostsFile /dev/null` |
+| 19 | Live run credited R2's Tunnel0 to R1 | Evidence was only checked for "command ran", not content | Quote check: each finding quotes a line that must be in that device's output |
+| 20 | Small model stopped after "no neighbors" | No checklist | Playbooks run fixed checks in code first; analyzers compare both ends |
+| 22 | Model ignored the proven passive-interface finding and answered "both routers are DR", confidence high | Rule kept any confident model answer | Code cause wins unless the model names it (tags); model's answer shown as *Model's view* |
+| 23 | Wrong IPsec key looked like an OSPF problem (neighbor in INIT on Tunnel0) | The question was pasted log lines, so the OSPF playbook ran | INIT on a tunnel now points to IPsec checks; runbook says: use the exact question |
+| 24 | Assistant summaries added fixes Rootvex never printed | Summaries were read instead of the raw output | Judge from Rootvex's own `Likely cause` / `Proposed fix` lines |
+| 25 | Flapping missed, model blamed spare port Gi3/0 | Needed 3 downs in the whole log; "flapping" alone counted as the model agreeing | 2+ downs in 15 min; model must name the same interface to agree; spare ports ignored |
+| 26 | IPsec test showed no fault, model invented "SA not established" | Tunnel was still up (old SA); checks found only healthy output | Healthy results are reported (`OK: …`); "No fault found by the code checks" overrules an invented fault; runbook: clear both ends and send traffic |
+| 27 | "No default route" blamed on R2, ACL ranked second | R2 learns the web prefix by BGP and has no default route by design; ACL deny had a fixed low rank | No default route is a cause only without BGP routes; deny on web ports with hits ranks high; model must name the ACL to agree |
+| 28 | Health check after the tests reported an OSPF fault on a healthy lab | Old "FULL to DOWN" log lines from the fault tests were treated as current | FULL neighbors are reported healthy; a "lost neighbor" log line is dropped once that neighbor is FULL again; report says "No fault found by the code checks" |
+| 21 | Gemini review suggested OSPF outputs that IOS does not print | Reviewer model invented output formats | Recorded scenarios are written from real IOS 12.4 formats; live output wins |
 
 Lessons:
 - Never leave a crash-looping Dynamips router running.
@@ -655,6 +781,7 @@ Lessons:
 - Keep one working copy. Two folders for one project led to diverged history.
 - Old IOS needs old crypto: plan client settings (OpenSSH, paramiko) up front.
 - "Confirmed it ran" is not "confirmed it's true": findings need quoting.
+- Let code do the comparing (areas, timers, counters); let the model explain.
 
 ---
 
@@ -682,3 +809,6 @@ Lessons:
 | **RAG** | Searching documents and giving the relevant parts to the model |
 | **MCP** | Model Context Protocol: a standard way to expose tools to AI apps |
 | **Evaluation (eval)** | A repeatable test set that scores the agent's answers |
+| **Playbook** | An ordered list of read-only checks for one kind of problem, plus code that reads the results |
+| **Analyzer** | Code that compares outputs (e.g. both ends of a link) and returns findings with quoted proof |
+| **Quote check** | Code test that an evidence quote really appears in that device's output |

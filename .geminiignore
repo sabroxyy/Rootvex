@@ -1,0 +1,6 @@
+.env
+config/inventory.local.yaml
+data/
+logs/
+*.pem
+*.key

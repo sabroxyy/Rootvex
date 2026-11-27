@@ -84,8 +84,18 @@ def test_agent_diagnoses_ospf_area_mismatch_end_to_end(setup):
         {
             "likely_cause": "OSPF area mismatch on the R1-R2 link (R1 area 0, R2 area 1).",
             "evidence": [
-                {"device": "R1", "command": "show ip ospf neighbor", "finding": "no neighbors"},
-                {"device": "R2", "command": "show ip protocols", "finding": "10.0.12.0/30 area 1"},
+                {
+                    "device": "R1",
+                    "command": "show ip ospf neighbor",
+                    "finding": "no neighbors",
+                    "quote": "R1#",
+                },
+                {
+                    "device": "R2",
+                    "command": "show ip protocols",
+                    "finding": "10.0.12.0/30 area 1",
+                    "quote": "10.0.12.0 0.0.0.3 area 1",
+                },
             ],
             "proposed_fix": "On R2: router ospf 1 / network 10.0.12.0 0.0.0.3 area 0",
             "confidence": "high",

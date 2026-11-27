@@ -1,0 +1,1 @@
+*Nov 25 10:00:10.123: %LINK-5-CHANGED: Interface GigabitEthernet1/0, changed state to administratively down

@@ -1,0 +1,14 @@
+*Nov 27 13:51:14.155: %LINEPROTO-5-UPDOWN: Line protocol on Interface VoIP-Null0, changed state to up
+*Nov 27 13:51:14.159: %LINK-3-UPDOWN: Interface FastEthernet0/0, changed state to up
+*Nov 27 13:51:14.167: %LINK-3-UPDOWN: Interface GigabitEthernet1/0, changed state to up
+*Nov 27 13:51:14.171: %LINK-3-UPDOWN: Interface GigabitEthernet2/0, changed state to up
+*Nov 27 13:51:14.175: %LINK-3-UPDOWN: Interface GigabitEthernet3/0, changed state to up
+*Nov 27 13:51:15.191: %LINEPROTO-5-UPDOWN: Line protocol on Interface FastEthernet0/0, changed state to up
+*Nov 27 13:51:15.191: %LINEPROTO-5-UPDOWN: Line protocol on Interface GigabitEthernet1/0, changed state to up
+*Nov 27 13:51:15.191: %LINEPROTO-5-UPDOWN: Line protocol on Interface GigabitEthernet2/0, changed state to up
+*Nov 27 13:51:15.191: %LINEPROTO-5-UPDOWN: Line protocol on Interface GigabitEthernet3/0, changed state to down
+*Nov 27 17:22:15.515: %LINEPROTO-5-UPDOWN: Line protocol on Interface GigabitEthernet1/0, changed state to down
+*Nov 27 17:22:17.739: %LINK-3-UPDOWN: Interface GigabitEthernet1/0, changed state to up
+*Nov 27 17:22:18.739: %LINEPROTO-5-UPDOWN: Line protocol on Interface GigabitEthernet1/0, changed state to up
+*Nov 27 17:22:36.595: %LINEPROTO-5-UPDOWN: Line protocol on Interface GigabitEthernet1/0, changed state to down
+*Nov 27 17:22:45.503: %LINK-3-UPDOWN: Interface GigabitEthernet1/0, changed state to up

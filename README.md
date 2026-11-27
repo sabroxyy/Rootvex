@@ -4,10 +4,13 @@ A self-hosted, open-source AI agent that helps network and security engineers
 troubleshoot and configure network and security devices — built from scratch,
 running locally, lab-first.
 
-> **Status (23 Nov 2026):** Phases 0–3 complete. The live GNS3 lab (4 Cisco 7200
-> routers, IOS 12.4) runs, and `rootvex ask` troubleshoots it over SSH with
-> read-only commands; config commands are denied before they reach a device.
-> Next: Phase 4 playbooks. (Renamed from NetWarden on 22 Nov 2026.)
+> **Status (27 Nov 2026):** Phases 0–4 complete. **Phase 4** (branch `phase4`):
+> 5 troubleshooting playbooks (OSPF, interface, BGP, IPsec, website) run
+> read-only checks in code first; every finding quotes a line from the device
+> output that code verifies; a proven code finding overrules a wrong model
+> answer. **All 11 planted faults were found on the live GNS3 lab**
+> ([runbook](docs/PHASE4_RUNBOOK.md)). Config commands are denied before they
+> reach a device. Next: Phase 5, knowledge base. (Renamed from NetWarden on 22 Nov 2026.)
 > Full status and how-to: [`docs/MANUAL.md`](docs/MANUAL.md)
 > ([PDF](docs/Rootvex-Manual.pdf)).
 
@@ -85,5 +88,6 @@ Apache License 2.0 — see [`LICENSE`](LICENSE).
 | [`docs/PROJECT_PROMPT.md`](docs/PROJECT_PROMPT.md) — build brief for Claude Code | — |
 | [`lab/README.md`](lab/README.md) — GNS3 lab as code | — |
 | [`docs/rootvex-lab-3d.html`](docs/rootvex-lab-3d.html) — interactive 3D view of the lab | — |
+| [`docs/rootvex-agent-3d.html`](docs/rootvex-agent-3d.html) — interactive 3D view of the agent flow | — |
 
 PDFs are generated from the Markdown: `uv run scripts/build_pdfs.py`.

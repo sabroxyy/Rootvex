@@ -151,6 +151,92 @@ mtools, Docker without sudo, GNS3 VM disabled, server on 127.0.0.1:3080 with aut
   (R1–R2 FULL, R2–BR1 FULL over Tunnel0); `configure terminal`, `conf t`,
   `reload` → DENIED and logged.
 
+## 15. Phase 4: playbooks (2026-11-24/25)
+
+Built in the cloud session on branch `phase4` (no workstation needed):
+
+- Quote-checked evidence: every finding quotes a line that code finds in that
+  device's output, or it is UNVERIFIED with the reason.
+- Playbook engine + 5 playbooks (`config/playbooks/`), analyzers comparing both
+  ends of a link, playbook node in the graph, web page shows code findings.
+- 11 recorded faults (`tests/fixtures/scenarios/`), `rootvex ask --scenario`,
+  fault guide `lab/FAULTS.md`.
+- Results: `uv run ruff check .` → All checks passed; `uv run pytest` → 89 passed.
+- First workstation run (`--scenario ospf_passive`): right cause, but the model
+  re-ran playbook commands, quoted whole blocks, and in a second run answered
+  "both routers are DR" with high confidence. Fixed: output reuse, one-line
+  quotes, and code findings with proof overrule a disagreeing model.
+
+To do on the workstation:
+
+```bash
+cd ~/projects/rootvex
+git fetch origin && git switch phase4
+uv sync
+uv run pytest -q
+uv run rootvex ask "OSPF neighbor R1 R2 is down" --scenario ospf_passive --steps
+```
+
+then plant each fault from `lab/FAULTS.md` on the live lab.
+
+## 16. Phase 4 live-lab proof (2026-11-27)
+
+- SSH timeout at first: lab not started / `tap-nw` down. Fixed by starting the
+  GNS3 project and `nmcli connection up tap-nw`; health check then OK (R1–R2 and
+  R2–BR1 FULL, real log quotes).
+- Faults planted by hand in the router console (guided by Gemini CLI, which
+  ran `rootvex ask`):
+
+| # | Fault | Expected | Got | Result |
+|---|---|---|---|---|
+| 1 | passive-interface Gi1/0 on R1 | R1 Gi1/0 passive | R1 Gi1/0 passive, confidence high | ✅ |
+| 2 | `ip ospf hello-interval 5` on R2 Gi1/0 | timer mismatch 10/40 vs 5/20 | same | ✅ |
+| 5 | `shutdown` on R1 Gi1/0 | administratively down | same, confidence high | ✅ |
+| 3 | `ip ospf 1 area 1` on R2 Gi1/0 | area mismatch 0 vs 1 | area mismatch, quotes `Area 0` / `Area 1` | ✅ |
+| 4 | `ip mtu 1400` on R2 Gi1/0 + `clear ip ospf process` | EXSTART/EXCHANGE, MTU | MTU mismatch found | ✅ |
+| 6 | R1 Gi1/0 shut/no shut ×2–3 | flapping | first run: missed (needed 3 downs); after fix: Gi1/0 flapping, 2 downs in 15 min | ✅ |
+| 7 | R2 `neighbor 203.0.113.2 remote-as 65101` | wrong remote AS | "peer in wrong AS" found (asked as the log line) | ✅ |
+| 8 | R2 `neighbor 203.0.113.2 shutdown` | admin shut | `Idle (Admin)` found (asked as the summary row) | ✅ |
+| 9 | BR1 wrong pre-shared key | PSK mismatch | run 1: asked as OSPF log lines → wrong playbook; run 2: fault not active; run 3: phase 1 `MM_NO_STATE` on BR1 and R2, model's guess moved to Model's view | ✅ |
+| 10 | R1 `no ip route 0.0.0.0 0.0.0.0 10.0.12.2` | no default route | same, quote `Gateway of last resort is not set`, model agreed, confidence high | ✅ |
+
+- IOS drops the adjacency at once for a passive interface ("Interface down or
+  detached"), not after the 40 s dead timer.
+- Lesson: a wrong IPsec key shows on R2 as OSPF INIT on Tunnel0. Code now points
+  INIT-on-a-tunnel to IPsec checks (90 tests pass).
+- Lesson: judge from Rootvex's raw output; an assistant summary added fixes
+  Rootvex never printed (#7, #9).
+- #6 rerun: R1 logged Gi1/0 down twice at 17:22, but the code needed 3 downs, so
+  nothing was found and the model chased spare port Gi3/0. Fixed: flapping = 2+
+  downs in the last 15 minutes of the log (older boot/test events ignored); the
+  interface playbook tells the model to ignore `unassigned` ports. R1's real log
+  is now the recorded scenario. 101 tests pass.
+- #6 rerun on the new code: `R1 GigabitEthernet1/0 is flapping: line protocol went
+  down 2 times in the last 15 minutes` ✅. The model's fix ("assign an IP") was
+  still kept because it said "flapping"; now a model answer only agrees if it
+  also names the same interface. 101 tests pass.
+- The workstation was still on an old commit (`27daef2`) for the first reruns:
+  always `git pull` and check `git log --oneline -1` before a test session.
+- #9 second run: playbook *IPsec VPN down* chosen correctly, but the fault was
+  not active (both ends `QM_IDLE`, 1910/1903 packets encrypted/decrypted). Code
+  found nothing; the model invented "IPsec SA not established". Fixed: analyzers
+  report healthy results (`OK: …`); when code finds no cause but proves health,
+  the report says "No fault found by the code checks" and the model's claim goes
+  to Model's view. Recorded IPsec files now use the real 12.4 layout (no `slot`
+  column). 101 tests pass.
+- #9 run 3 ✅. IOS lists the old `QM_IDLE` SA next to the failing one during a
+  rekey; that stale row is no longer reported as "up". 101 tests pass.
+| 11 | R2 ACL `BLOCK_WEB` deny www, applied in on Gi1/0 | ACL deny with hits | run 1: ACL found (4 hits) but top cause was "R2 has no default route" (false: R2 uses BGP routes); run 2 after fix: `BLOCK_WEB` denies www, 4 hits, model named the ACL | ✅ |
+
+- #11 fix: "no default route" is only a cause when the router has no BGP routes;
+  a deny on web ports with hits ranks high and the model must name the ACL to
+  agree. 101 tests pass.
+- **Result: 11/11 faults proven on the live lab. Phase 4 complete.**
+- Health check after the tests (lab healthy) still reported a fault from old
+  "FULL to DOWN" log lines. Fixed: FULL neighbors are healthy findings and
+  clear old lost-neighbor log lines; the report says "No fault found by the code
+  checks". 101 tests pass.
+
 ## Next
 
 - [x] Confirm `docker run hello-world` without sudo
@@ -166,6 +252,8 @@ mtools, Docker without sudo, GNS3 VM disabled, server on 127.0.0.1:3080 with aut
 - [x] `cp config/inventory.example.yaml config/inventory.local.yaml`
 - [x] Build the lab: `uv run python lab/build_gns3_lab.py --rebuild --start`
 - [x] `ssh rootvex@10.99.0.11` from the host; Phase 3 live-lab checks passed
+- [x] Phase 4 playbooks built and proven on recorded faults
+- [x] Phase 4 live proof: plant the 11 faults in `lab/FAULTS.md`, check each top finding (11/11 done)
 - [ ] Optional: IOSv + IOSvL2 (CML-Personal) for a managed SW1
 - [ ] NVIDIA Container Toolkit (Phase 9)
 - [ ] Open WebUI (Phase 7, optional)

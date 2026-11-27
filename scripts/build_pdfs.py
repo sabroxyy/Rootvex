@@ -31,6 +31,7 @@ DOCS = {
     "manual": ("MANUAL.md", "Rootvex-Manual.pdf", "Rootvex Manual"),
     "design": ("DESIGN.md", "Rootvex-Design.pdf", "Rootvex Design (Phase 0 + status)"),
     "setup": ("SETUP_LOG.md", "Rootvex-SetupLog.pdf", "Rootvex Workstation Setup Log"),
+    "runbook": ("PHASE4_RUNBOOK.md", "Rootvex-Phase4-Runbook.pdf", "Rootvex Phase 4 Runbook"),
 }
 
 CSS = """

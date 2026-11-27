@@ -17,5 +17,9 @@ class AgentState(TypedDict, total=False):
     steps: int  # tool calls executed so far
     started_at: float  # time.monotonic() at start
     executed: list[tuple[str, str]]  # (device, command) pairs that really ran
+    outputs: dict[str, str]  # "device|command" (normalised) -> text the device returned
     limits_hit: str | None
+    playbook: str  # title of the playbook that ran, "" if none
+    findings: list  # rootvex.playbooks.Finding, best first
+    cache: dict[str, str]  # "device|command" -> tool result the playbook already got
     report: Report

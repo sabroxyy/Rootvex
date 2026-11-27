@@ -1,0 +1,457 @@
+<title>Rootvex Agent Flow</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@500;600&family=IBM+Plex+Sans:wght@400;500&display=swap">
+<style>
+  /* Layout: full-screen 3D scene of the agent's stages laid out as a U (in along the
+     back row, out along the front row), with a header, a scenario/playback strip and a
+     detail panel floating over it. Single-theme dark lab console, set explicitly,
+     same family as rootvex-lab-3d.html. */
+  :root {
+    --bg: #0e1519;
+    --panel: rgba(18, 28, 34, 0.9);
+    --line: #2a3a43;
+    --fg: #dde7ea;
+    --muted: #8ea2aa;
+    --user: #e8c37a;     /* you */
+    --model: #b48cf0;    /* granite4:3b */
+    --code: #5fc4c0;     /* deterministic code */
+    --safety: #e0a94a;   /* gates */
+    --device: #6aa6e0;   /* lab routers */
+    --bad: #f07167;      /* denied / error */
+    --ok: #7bd389;
+    --font-display: "IBM Plex Sans Condensed", "Arial Narrow", system-ui, sans-serif;
+    --font-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+    color-scheme: dark;
+  }
+  html, body { height: 100%; }
+  body { background: var(--bg); color: var(--fg); font-family: var(--font-body); overflow: hidden; }
+  #scene { position: fixed; inset: 0; display: block; width: 100%; height: 100%; }
+  #labels { position: fixed; inset: 0; pointer-events: none; overflow: hidden; }
+
+  .lbl {
+    position: absolute; left: 0; top: 0; transform: translate(-50%, -100%);
+    font-family: var(--font-mono); font-size: 11px; line-height: 1.25; text-align: center;
+    white-space: nowrap; color: var(--fg);
+    text-shadow: 0 1px 3px var(--bg), 0 0 6px var(--bg);
+    transition: opacity .2s;
+  }
+  .lbl b { display: block; font-family: var(--font-display); font-weight: 600; font-size: 13px; letter-spacing: .04em; }
+  .lbl span { color: var(--muted); }
+  .lbl.dim { opacity: .35; }
+  .lbl.zone { transform: translate(-50%, -50%); font-family: var(--font-display); font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+
+  header {
+    position: fixed; top: env(safe-area-inset-top, 0px); left: 0; right: 0;
+    padding-block: 14px 0;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+    pointer-events: none;
+  }
+  header h1 { margin: 0; font-family: var(--font-display); font-weight: 600; font-size: 22px; letter-spacing: .02em; }
+  header p { margin: 4px 0 0; color: var(--muted); font-size: 13px; max-width: 60ch; }
+  .legend { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-top: 10px; font-family: var(--font-mono); font-size: 11px; color: var(--muted); }
+  .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+
+  .strip {
+    position: fixed; left: 0; right: 0; bottom: calc(env(safe-area-inset-bottom, 0px));
+    padding-block: 0 14px;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+    display: flex; flex-direction: column; gap: 10px; pointer-events: none;
+  }
+  .card {
+    pointer-events: auto; background: var(--panel); border: 1px solid var(--line); border-radius: 8px;
+    backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+  }
+  .caption { padding: 12px 14px; max-width: 760px; min-width: 0; }
+  .caption .k { font-family: var(--font-mono); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+  .caption h2 { margin: 4px 0 6px; font-family: var(--font-display); font-weight: 600; font-size: 18px; text-wrap: balance; }
+  .caption p { margin: 0; font-size: 14px; line-height: 1.5; max-width: 72ch; }
+  .caption code, .detail code { font-family: var(--font-mono); font-size: 12.5px; color: var(--code); overflow-wrap: anywhere; }
+  .controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 8px; }
+  .controls .sep { width: 1px; align-self: stretch; background: var(--line); margin: 0 2px; }
+  button {
+    font: 500 13px var(--font-body); color: var(--fg); background: transparent;
+    border: 1px solid var(--line); border-radius: 6px; padding: 7px 11px; cursor: pointer;
+  }
+  button:hover { border-color: var(--muted); }
+  button:focus-visible { outline: 2px solid var(--code); outline-offset: 2px; }
+  button[aria-pressed="true"] { background: #1c2c34; border-color: var(--code); color: #fff; }
+  .count { font-family: var(--font-mono); font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; padding: 0 4px; }
+
+  .detail {
+    position: fixed; top: calc(env(safe-area-inset-top, 0px) + 120px);
+    right: max(16px, env(safe-area-inset-right, 0px));
+    width: min(340px, calc(100vw - 32px)); max-height: calc(100vh - 360px); overflow: auto;
+    padding: 14px;
+  }
+  .detail .k { font-family: var(--font-mono); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; }
+  .detail h3 { margin: 4px 0 8px; font-family: var(--font-display); font-weight: 600; font-size: 17px; }
+  .detail ul { margin: 0; padding-left: 18px; font-size: 13px; line-height: 1.5; }
+  .detail li + li { margin-top: 4px; }
+  .detail .file { margin-top: 10px; font-family: var(--font-mono); font-size: 11px; color: var(--muted); overflow-wrap: anywhere; }
+  .detail .close { float: right; padding: 2px 8px; }
+
+  @media (max-width: 720px) {
+    header p { display: none; }
+    .detail { top: auto; bottom: calc(env(safe-area-inset-bottom, 0px) + 200px); max-height: 38vh; }
+    .caption p { font-size: 13px; }
+  }
+  @media (prefers-reduced-motion: reduce) { .lbl { transition: none; } }
+</style>
+
+<canvas id="scene" aria-label="3D view of the Rootvex agent stages"></canvas>
+<div id="labels"></div>
+
+<header>
+  <h1>Rootvex — what happens after you ask</h1>
+  <p>Every question travels the same path: plan, playbook checks through the safety gates, code analysis, the model, the quote check, then you decide. Pick a situation and press Play, or click any stage.</p>
+  <div class="legend">
+    <span><i style="background:var(--user)"></i>you</span>
+    <span><i style="background:var(--model)"></i>model (granite4:3b)</span>
+    <span><i style="background:var(--code)"></i>code</span>
+    <span><i style="background:var(--safety)"></i>safety gate</span>
+    <span><i style="background:var(--device)"></i>lab routers</span>
+    <span><i style="background:var(--bad)"></i>denied / failed</span>
+  </div>
+</header>
+
+<aside class="detail card" id="detail" hidden>
+  <button class="close" id="closeDetail" aria-label="Close details">×</button>
+  <div class="k" id="dKind"></div>
+  <h3 id="dTitle"></h3>
+  <ul id="dList"></ul>
+  <div class="file" id="dFile"></div>
+</aside>
+
+<div class="strip">
+  <div class="card caption" aria-live="polite">
+    <div class="k" id="cStep">Ready</div>
+    <h2 id="cTitle">Choose a situation</h2>
+    <p id="cText">The packet shows one request moving through Rootvex. Nothing on this path can change a router's configuration.</p>
+  </div>
+  <div class="card controls">
+    <button id="sc0" aria-pressed="true">OSPF fault (playbook)</button>
+    <button id="sc1" aria-pressed="false">Config command asked</button>
+    <button id="sc2" aria-pressed="false">Lab unreachable</button>
+    <span class="sep"></span>
+    <button id="prev" aria-label="Previous step">◀</button>
+    <button id="play">▶ Play</button>
+    <button id="next" aria-label="Next step">▶|</button>
+    <span class="count" id="count">0 / 0</span>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script>
+(() => {
+  const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+  const C = { user: css('--user'), model: css('--model'), code: css('--code'), safety: css('--safety'),
+              device: css('--device'), bad: css('--bad'), ok: css('--ok'), line: css('--line'), fg: css('--fg') };
+
+  // ---- Stages (positions: back row z=-5 goes right, front row z=+5 comes back) ----
+  const N = {
+    ask:     { x: -15, z: -5, kind: 'user',   t: 'You ask',        s: 'CLI or web page',
+      d: ['Question in plain words, e.g. "OSPF neighbor R1 R2 is down".',
+          'CLI: <code>rootvex ask "…"</code>. Web: sign in, type, watch the steps.',
+          'Each run gets a run_id; everything is written to the audit log.'],
+      f: 'src/rootvex/cli.py · src/rootvex/web/app.py' },
+    plan:    { x: -9,  z: -5, kind: 'model',  t: 'Plan',           s: 'model, no tools',
+      d: ['The model writes a short list of read-only checks.',
+          'It cannot run anything here: no tools are attached to this call.'],
+      f: 'src/rootvex/agent/graph.py · plan_node' },
+    pick:    { x: -3,  z: -5, kind: 'code',   t: 'Pick playbook',  s: 'keywords',
+      d: ['Code picks the playbook whose keywords best match: OSPF, interface, BGP, IPsec or website.',
+          'Devices = routers named in the question (all routers if none named).',
+          'No match → skip straight to the model.'],
+      f: 'config/playbooks/*.yaml · rootvex.playbooks.choose' },
+    allow:   { x: 3,   z: -5, kind: 'safety', t: 'Allowlist',      s: 'deny by default',
+      d: ['Every command is matched against config/allowlist/cisco_ios.yaml.',
+          'Only show commands, ping and traceroute pass. "conf t", "reload", "write" are DENIED.',
+          'A denied command never reaches SSH, and the denial is logged.'],
+      f: 'src/rootvex/devices/allowlist.py' },
+    lab:     { x: 9,   z: -5, kind: 'safety', t: 'Lab-only check', s: '10.99.0.0/24',
+      d: ['The device must be in the inventory and inside the lab management network.',
+          'Anything outside 10.99.0.0/24 is refused at start-up.'],
+      f: 'src/rootvex/devices/inventory.py' },
+    ssh:     { x: 15,  z: 0,  kind: 'code',   t: 'SSH',            s: 'Netmiko, read-only',
+      d: ['Logs in as rootvex (password from .env, never shown to the model).',
+          'Runs exactly one allowed command and returns the text.',
+          'Timeout or auth failure → an ERROR result, not a crash.'],
+      f: 'src/rootvex/devices/connection.py · NetmikoRunner' },
+    clean:   { x: 9,   z: 5,  kind: 'safety', t: 'Redact + wrap',  s: 'untrusted output',
+      d: ['Secrets (passwords, keys, SNMP communities) are removed.',
+          'Output is wrapped in &lt;untrusted_device_output&gt; so text on a router cannot give the model orders.',
+          'Long output is truncated.'],
+      f: 'src/rootvex/tools/sanitize.py · redaction' },
+    analyze: { x: 3,   z: 5,  kind: 'code',   t: 'Analyzers',      s: 'compare both ends',
+      d: ['Code compares the outputs: areas, hello/dead timers, passive, MTU, BGP state, IPsec counters, routes, ACL hits.',
+          'Every finding carries the exact line that proves it.',
+          'Causes rank above symptoms ("no neighbors" is a symptom).'],
+      f: 'src/rootvex/playbooks/analyzers.py' },
+    agent:   { x: -3,  z: 5,  kind: 'model',  t: 'Agent loop',     s: 'max 12 steps · 300 s',
+      d: ['The model sees the outputs and the code findings, and may ask for more commands.',
+          'Each extra command goes back through the allowlist and lab check.',
+          'A command the playbook already ran is reused, not run again.'],
+      f: 'src/rootvex/agent/graph.py · agent_node / tools_node' },
+    verify:  { x: -9,  z: 5,  kind: 'code',   t: 'Verify',         s: 'quote check · code vs model',
+      d: ['Each evidence quote must appear in that device\'s output for that command, or it is UNVERIFIED.',
+          'If code proved a cause and the model names something else, the code cause wins; the model\'s answer is shown as "Model\'s view".'],
+      f: 'src/rootvex/agent/report.py · verify_evidence / add_code_findings' },
+    report:  { x: -15, z: 5,  kind: 'user',   t: 'Report → you',   s: 'approve or reject',
+      d: ['Likely cause, confidence, code findings, quoted evidence, proposed fix (not applied).',
+          'In the web page you Approve or Reject. The decision is only recorded with your name and time.',
+          'Nothing is sent to a router. Config changes come in Phase 8, with your approval.'],
+      f: 'src/rootvex/web/store.py · data/rootvex.db' },
+    r1:      { x: 21,  z: -2.2, kind: 'device', t: 'R1', s: '10.99.0.11', small: true,
+      d: ['Cisco 7200, IOS 12.4(24)T5, GNS3 lab.', 'Management on Fa0/0 in VRF MGMT.'], f: 'lab/configs/R1.cfg' },
+    r2:      { x: 21,  z: 2.2,  kind: 'device', t: 'R2', s: '10.99.0.12', small: true,
+      d: ['Cisco 7200, IOS 12.4(24)T5, GNS3 lab.', 'OSPF to R1, eBGP to ISP1, IPsec VTI to BR1.'], f: 'lab/configs/R2.cfg' },
+    audit:   { x: 0,   z: 0,  kind: 'code',   t: 'Audit log',      s: 'every step', low: true,
+      d: ['JSON lines: plan, each command (ran or DENIED), model calls with latency, report.',
+          'Secrets are redacted before writing.'],
+      f: 'logs/rootvex-YYYYMMDD.jsonl' },
+    denied:  { x: 3,   z: -11, kind: 'bad',   t: 'DENIED',         s: 'never reaches SSH',
+      d: ['The tool returns "DENIED: … not in the read-only allowlist".',
+          'The model sees the refusal; the router never sees the command.'],
+      f: 'src/rootvex/tools/device_tools.py' },
+  };
+
+  const EDGES = [
+    ['ask','plan'],['plan','pick'],['pick','allow'],['allow','lab'],['lab','ssh'],
+    ['ssh','r1'],['ssh','r2'],['ssh','clean'],['clean','analyze'],['analyze','agent'],
+    ['agent','verify'],['verify','report'],['allow','denied'],
+  ];
+  const DASHED = [['agent','allow'],['allow','audit'],['ssh','audit'],['agent','audit'],['verify','audit']];
+
+  // ---- Situations: a path of [stage, step title, caption] ----
+  const SCEN = [
+    { name: 'OSPF fault (playbook)', steps: [
+      ['ask', 'You ask', 'You type "OSPF neighbor R1 R2 is down". R1 has a passive interface planted (lab fault #1).'],
+      ['plan', 'Model writes a plan', 'granite4:3b lists checks. It has no tools yet, so it cannot run anything.'],
+      ['pick', 'Playbook: OSPF neighbor down', 'Keywords "OSPF" and "neighbor" pick the OSPF playbook. R1 and R2 are named, so both are checked.'],
+      ['allow', 'Allowlist: allowed', '<code>show ip ospf neighbor</code>, <code>show ip ospf interface</code>, <code>show ip interface brief</code>, <code>show logging | include OSPF</code> are all read-only.'],
+      ['lab', 'Lab-only check: OK', 'R1 10.99.0.11 and R2 10.99.0.12 are inside 10.99.0.0/24.'],
+      ['ssh', 'SSH to the routers', '8 commands, 4 per router. Each returns plain text.'],
+      ['r1', 'R1 answers', 'R1\'s Gi1/0 shows <code>No Hellos (Passive interface)</code>; its neighbor table is empty.'],
+      ['clean', 'Redact and wrap', 'Secrets removed; output marked untrusted before the model sees it.'],
+      ['analyze', 'Code finds the cause', 'Both ends of 10.0.12.0/30 are compared: R1 Gi1/0 is passive. Proof line: <code>No Hellos (Passive interface)</code>.'],
+      ['agent', 'Model reviews', 'The model reads outputs and findings. Commands it repeats are reused, so no new SSH and no steps used.'],
+      ['verify', 'Code beats a wrong model', 'If the model says "both routers are DR", the proven code cause wins and the model\'s answer is shown as "Model\'s view". Quotes are checked against real output.'],
+      ['report', 'You decide', 'Likely cause: R1 Gi1/0 passive. Fix (not applied): <code>no passive-interface GigabitEthernet1/0</code>. You type it yourself in the console.'],
+    ]},
+    { name: 'Config command asked', steps: [
+      ['ask', 'You ask for a change', 'You type "shut Gi1/0 on R1". Rootvex is read-only, so this cannot happen.'],
+      ['plan', 'Model writes a plan', 'The plan may include a config command. Planning runs nothing.'],
+      ['pick', 'No playbook matches', 'No troubleshooting keywords, so the model works alone.'],
+      ['agent', 'Model tries a command', 'The model calls the tool with <code>configure terminal</code>.'],
+      ['allow', 'Allowlist check', '<code>configure terminal</code> is not in the read-only allowlist.'],
+      ['denied', 'DENIED', 'The command stops here. It never reaches SSH or the router.'],
+      ['audit', 'Logged', 'The denial is written to the audit log with the run_id.'],
+      ['verify', 'Nothing to verify', 'No device output, so no evidence can be verified.'],
+      ['report', 'You get a refusal', 'Report says the change was not made. Config changes arrive only in Phase 8, with your approval.'],
+    ]},
+    { name: 'Lab unreachable', steps: [
+      ['ask', 'You ask', 'Same OSPF question, but tap-nw is down or the routers are stopped.'],
+      ['plan', 'Model writes a plan', 'Planning does not need the lab.'],
+      ['pick', 'Playbook: OSPF neighbor down', 'The playbook is chosen as normal.'],
+      ['allow', 'Allowlist: allowed', 'The commands are read-only, so they pass.'],
+      ['lab', 'Lab-only check: OK', 'The addresses are in the lab range; reachability is not checked here.'],
+      ['ssh', 'SSH fails', '<code>ERROR: timeout connecting to R1: TCP connection to device failed.</code> The run carries on.'],
+      ['analyze', 'Nothing to analyze', 'No output, so code finds no cause.'],
+      ['agent', 'Model has only errors', 'The model can only explain the connection failure.'],
+      ['verify', 'Evidence UNVERIFIED', 'Quotes of error text are not device output, so they are marked UNVERIFIED.'],
+      ['report', 'Low confidence', 'Report says the routers were unreachable. Fix: <code>nmcli connection up tap-nw</code>, start the routers in GNS3, ping 10.99.0.11.'],
+    ]},
+  ];
+  // stage → state colour in a situation (red = failed/denied)
+  const BAD = { 1: ['denied'], 2: ['ssh', 'r1', 'r2'] };
+
+  // ---- Three.js scene ----
+  const canvas = document.getElementById('scene');
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setClearColor(css('--bg'));
+  const scene = new THREE.Scene();
+  scene.fog = new THREE.Fog(css('--bg'), 60, 110);
+  const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 400);
+  camera.position.set(-6, 30, 38);
+  const controls = new THREE.OrbitControls(camera, canvas);
+  controls.target.set(2, 0, 0);
+  controls.enableDamping = true;
+  controls.maxPolarAngle = Math.PI * 0.47;
+  controls.minDistance = 18; controls.maxDistance = 90;
+
+  scene.add(new THREE.AmbientLight(0xffffff, 0.55));
+  const sun = new THREE.DirectionalLight(0xffffff, 0.8); sun.position.set(10, 30, 15); scene.add(sun);
+
+  const grid = new THREE.GridHelper(80, 40, C.line, C.line);
+  grid.position.y = -0.6; grid.material.transparent = true; grid.material.opacity = 0.35; scene.add(grid);
+
+  const meshes = {};
+  const pos = id => new THREE.Vector3(N[id].x, N[id].low ? -0.2 : (N[id].small ? 0.4 : 0.6), N[id].z);
+  for (const [id, n] of Object.entries(N)) {
+    const w = n.small ? 2.2 : (n.low ? 5 : 3.6), h = n.small ? 0.8 : (n.low ? 0.4 : 1.2), d = n.small ? 1.8 : (n.low ? 3 : 2.6);
+    const col = new THREE.Color(C[n.kind]);
+    const mat = new THREE.MeshStandardMaterial({ color: col.clone().multiplyScalar(0.35), emissive: col, emissiveIntensity: 0.18, roughness: 0.6 });
+    const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
+    m.position.copy(pos(id)); m.userData.id = id; scene.add(m);
+    const edges = new THREE.LineSegments(new THREE.EdgesGeometry(m.geometry), new THREE.LineBasicMaterial({ color: col }));
+    m.add(edges);
+    meshes[id] = { mesh: m, mat, edges, col, h };
+  }
+
+  function line(a, b, color, dashed) {
+    const p1 = pos(a), p2 = pos(b);
+    p1.y = p2.y = -0.1;
+    const g = new THREE.BufferGeometry().setFromPoints([p1, p2]);
+    const mat = dashed
+      ? new THREE.LineDashedMaterial({ color, dashSize: 0.5, gapSize: 0.4, transparent: true, opacity: 0.5 })
+      : new THREE.LineBasicMaterial({ color, transparent: true, opacity: 0.7 });
+    const l = new THREE.Line(g, mat); if (dashed) l.computeLineDistances(); scene.add(l); return l;
+  }
+  EDGES.forEach(([a, b]) => line(a, b, b === 'denied' ? C.bad : C.fg));
+  DASHED.forEach(([a, b]) => line(a, b, b === 'audit' ? C.muted || C.fg : C.model, true));
+
+  // Packet
+  const packet = new THREE.Mesh(new THREE.SphereGeometry(0.55, 24, 16),
+    new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xffffff, emissiveIntensity: 0.7 }));
+  scene.add(packet);
+  const halo = new THREE.PointLight(0xffffff, 1.2, 9); packet.add(halo);
+
+  // ---- Labels ----
+  const labelsEl = document.getElementById('labels');
+  const labels = {};
+  for (const [id, n] of Object.entries(N)) {
+    const el = document.createElement('div'); el.className = 'lbl';
+    el.innerHTML = `<b style="color:${C[n.kind]}">${n.t}</b><span>${n.s}</span>`;
+    labelsEl.appendChild(el); labels[id] = el;
+  }
+  const zones = [
+    ['in: collect evidence →', new THREE.Vector3(-12, 0, -9.5)],
+    ['← out: decide and report', new THREE.Vector3(-3, 0, 9.5)],
+  ].map(([t, v]) => { const el = document.createElement('div'); el.className = 'lbl zone'; el.textContent = t; labelsEl.appendChild(el); return [el, v]; });
+
+  // ---- Detail panel ----
+  const detail = document.getElementById('detail');
+  const kindName = { user: 'you', model: 'model', code: 'code', safety: 'safety gate', device: 'lab router', bad: 'refusal' };
+  function showDetail(id) {
+    const n = N[id];
+    document.getElementById('dKind').textContent = kindName[n.kind];
+    document.getElementById('dKind').style.color = C[n.kind];
+    document.getElementById('dTitle').textContent = n.t;
+    document.getElementById('dList').innerHTML = n.d.map(x => `<li>${x}</li>`).join('');
+    document.getElementById('dFile').textContent = n.f;
+    detail.hidden = false;
+  }
+  document.getElementById('closeDetail').onclick = () => { detail.hidden = true; };
+
+  const ray = new THREE.Raycaster(), mouse = new THREE.Vector2();
+  let downAt = null;
+  canvas.addEventListener('pointerdown', e => { downAt = [e.clientX, e.clientY]; });
+  canvas.addEventListener('pointerup', e => {
+    if (!downAt || Math.hypot(e.clientX - downAt[0], e.clientY - downAt[1]) > 5) return;
+    const r = canvas.getBoundingClientRect();
+    mouse.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
+    ray.setFromCamera(mouse, camera);
+    const hit = ray.intersectObjects(Object.values(meshes).map(m => m.mesh))[0];
+    if (hit) showDetail(hit.object.userData.id);
+  });
+
+  // ---- Playback ----
+  let sc = 0, step = 0, playing = false, timer = null;
+  const from = new THREE.Vector3(), to = new THREE.Vector3();
+  let tMove = 1;
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  function setScenario(i) {
+    sc = i; step = 0; stop();
+    SCEN.forEach((_, j) => document.getElementById('sc' + j).setAttribute('aria-pressed', String(j === i)));
+    render(true);
+  }
+  function render(jump) {
+    const s = SCEN[sc], [id, title, text] = s.steps[step];
+    const bad = (BAD[sc] || []).includes(id);
+    document.getElementById('cStep').textContent = `${s.name} · step ${step + 1}`;
+    document.getElementById('cStep').style.color = bad ? C.bad : '';
+    document.getElementById('cTitle').textContent = title;
+    document.getElementById('cText').innerHTML = text;
+    document.getElementById('count').textContent = `${step + 1} / ${s.steps.length}`;
+    const onPath = new Set(s.steps.map(x => x[0]));
+    for (const [k, m] of Object.entries(meshes)) {
+      const isBad = (BAD[sc] || []).includes(k) && s.steps.findIndex(x => x[0] === k) <= step && onPath.has(k);
+      const c = isBad ? new THREE.Color(C.bad) : m.col;
+      m.mat.emissive.copy(c); m.edges.material.color.copy(c);
+      m.mat.emissiveIntensity = k === id ? 0.75 : (onPath.has(k) ? 0.22 : 0.06);
+      labels[k].classList.toggle('dim', !onPath.has(k));
+    }
+    from.copy(packet.position); to.copy(pos(id)); to.y += meshes[id].h / 2 + 0.9;
+    tMove = (jump || reduce) ? 1 : 0;
+    if (jump) packet.position.copy(to);
+    packet.material.emissive.set(bad ? C.bad : 0xffffff); halo.color.set(bad ? C.bad : 0xffffff);
+  }
+  function go(d) {
+    const n = SCEN[sc].steps.length;
+    step = Math.max(0, Math.min(n - 1, step + d)); render(false);
+  }
+  function stop() { playing = false; clearInterval(timer); document.getElementById('play').textContent = '▶ Play'; }
+  function play() {
+    if (playing) return stop();
+    if (step >= SCEN[sc].steps.length - 1) { step = 0; render(true); }
+    playing = true; document.getElementById('play').textContent = '❚❚ Pause';
+    timer = setInterval(() => {
+      if (step >= SCEN[sc].steps.length - 1) return stop();
+      go(1);
+    }, 3200);
+  }
+  SCEN.forEach((_, j) => { document.getElementById('sc' + j).onclick = () => setScenario(j); });
+  document.getElementById('prev').onclick = () => { stop(); go(-1); };
+  document.getElementById('next').onclick = () => { stop(); go(1); };
+  document.getElementById('play').onclick = play;
+  addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight') { stop(); go(1); }
+    if (e.key === 'ArrowLeft') { stop(); go(-1); }
+    if (e.key === ' ') { e.preventDefault(); play(); }
+  });
+
+  // ---- Loop ----
+  function resize() {
+    const w = innerWidth, h = innerHeight;
+    renderer.setSize(w, h, false); camera.aspect = w / h;
+    camera.fov = w < 720 ? 60 : 42; camera.updateProjectionMatrix();
+  }
+  addEventListener('resize', resize); resize();
+
+  const v = new THREE.Vector3();
+  let t0 = performance.now();
+  function frame(now) {
+    const dt = Math.min(0.05, (now - t0) / 1000); t0 = now;
+    if (tMove < 1) {
+      tMove = Math.min(1, tMove + dt / 0.9);
+      const e = tMove < 0.5 ? 2 * tMove * tMove : 1 - Math.pow(-2 * tMove + 2, 2) / 2;
+      packet.position.lerpVectors(from, to, e);
+      packet.position.y += Math.sin(Math.PI * e) * 2.2;
+    } else if (!reduce) {
+      packet.position.y = to.y + Math.sin(now / 400) * 0.15;
+    }
+    controls.update();
+    renderer.render(scene, camera);
+    const w = innerWidth, h = innerHeight;
+    for (const [id, el] of Object.entries(labels)) {
+      v.copy(meshes[id].mesh.position); v.y += meshes[id].h / 2 + 0.3; v.project(camera);
+      el.style.display = v.z > 1 ? 'none' : '';
+      el.style.transform = `translate(${(v.x * .5 + .5) * w}px, ${(-v.y * .5 + .5) * h}px) translate(-50%, -100%)`;
+    }
+    for (const [el, p] of zones) {
+      v.copy(p).project(camera);
+      el.style.transform = `translate(${(v.x * .5 + .5) * w}px, ${(-v.y * .5 + .5) * h}px) translate(-50%, -50%)`;
+    }
+    requestAnimationFrame(frame);
+  }
+  setScenario(0);
+  requestAnimationFrame(frame);
+})();
+</script>

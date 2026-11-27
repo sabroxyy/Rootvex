@@ -1,0 +1,4 @@
+interface: GigabitEthernet2/0
+    Crypto map tag: VPN, local addr 10.0.13.1
+    #pkts encaps: 25, #pkts encrypt: 25, #pkts digest: 25
+    #pkts decaps: 0, #pkts decrypt: 0, #pkts verify: 0

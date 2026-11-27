@@ -186,6 +186,8 @@
 
     if (run.plan) { box.append(el('h2', null, 'Plan')); box.lastChild.style.marginTop = '18px'; box.append(el('div', 'plan', run.plan)); }
 
+    const pb = run.events.find(e => e.type === 'playbook');
+    if (pb) { box.append(el('p', 'muted', `Playbook: ${pb.playbook} on ${(pb.devices || []).join(', ')}`)); }
     const tools = run.events.filter(e => e.type === 'tool');
     if (tools.length || run.status === 'running') {
       const h = el('h2', null, `Commands (${tools.length})`); h.style.marginTop = '18px'; box.append(h);
@@ -204,7 +206,7 @@
     const a = t.args || {};
     const res = String(t.result || '');
     const state = res.startsWith('DENIED') ? ['bad', 'denied'] : res.startsWith('ERROR') ? ['warn', 'error'] : ['ok', 'ran'];
-    s.append(el('span', 'muted', '#' + t.step), el('span', 'pill ' + state[0], state[1]));
+    s.append(el('span', 'muted', t.tool === 'playbook' ? 'pb' : '#' + t.step), el('span', 'pill ' + state[0], state[1]));
     s.append(el('strong', null, a.device || t.tool), el('code', null, a.command || t.tool));
     d.append(s, el('pre', 'out', res.replace(/<\/?untrusted_device_output[^>]*>/g, '').trim()));
     return d;
@@ -218,11 +220,20 @@
     if (r.limits_hit) card.append(el('p', 'warn', `Stopped early (${r.limits_hit}); this report is partial.`));
     const dl = el('dl');
     const add = (k, v) => { dl.append(el('dt', null, k)); const dd = el('dd'); dd.append(v); dl.append(dd); };
+    if (r.model_view) add("Model's view", el('span', 'warn', r.model_view + ' (not supported by the code checks)'));
+    if (r.code_findings?.length) {
+      const ul = el('ul', 'evidence'); r.code_findings.forEach(c => ul.append(el('li', null, c)));
+      add(`Code checks (${r.playbook})`, ul);
+    }
     if (r.evidence?.length) {
       const ul = el('ul', 'evidence');
       r.evidence.forEach(e => {
         const li = el('li'); li.append(el('strong', null, e.device + ' '), el('code', null, e.command), document.createTextNode(': ' + e.finding + ' '));
-        li.append(el('span', 'pill ' + (e.verified ? 'ok' : 'bad'), e.verified ? 'verified' : 'unverified'));
+        const pill = el('span', 'pill ' + (e.verified ? 'ok' : 'bad'), e.verified ? 'verified' : 'unverified');
+        if (e.check) pill.title = e.check;
+        li.append(pill);
+        if (e.quote) { const q = el('div', 'muted'); q.append(el('code', null, '“' + e.quote + '”')); li.append(q); }
+        if (!e.verified && e.check) li.append(el('div', 'bad', e.check));
         ul.append(li);
       });
       add('Evidence', ul);

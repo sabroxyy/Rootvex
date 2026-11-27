@@ -1,0 +1,2 @@
+Neighbor ID     Pri   State           Dead Time   Address         Interface
+1.1.1.1           1   EXCHANGE/DR     00:00:30    10.0.12.1       GigabitEthernet1/0

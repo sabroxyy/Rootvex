@@ -1,0 +1,15 @@
+# "User can't reach a website": walk the path. Route first, then interfaces, NAT, ACLs.
+id: website_unreachable
+title: User cannot reach a website
+keywords: [website, web, site, internet, http, https, url, browse, reach, unreachable]
+checks:
+  - command: show ip route
+    why: Is there a route (or default route) toward the destination
+  - command: show ip interface brief
+    why: Are the interfaces along the path up
+  - command: show ip nat translations
+    why: Is outbound traffic being translated
+  - command: show ip access-lists
+    why: Is an ACL denying the traffic (deny counters increasing)
+analyzers: [route_default, acl_denies]
+signatures: []

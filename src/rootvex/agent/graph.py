@@ -1,6 +1,8 @@
-"""The LangGraph agent:  plan -> agent <-> tools -> report.
+"""The LangGraph agent:  plan -> playbook -> agent <-> tools -> report.
 
     plan    : model writes a short plan of read-only checks (no tools)
+    playbook: if a playbook matches the question, code runs its checks in order
+              and analyzes the outputs; findings go to the model and the report
     agent   : model calls tools to collect evidence, or says it is done
     tools   : run the requested tool calls (each counts as one step)
     report  : model writes the final JSON report; we mark which evidence is verified
@@ -22,12 +24,18 @@ from langchain_core.tools import BaseTool
 from langgraph.graph import END, START, StateGraph
 
 from rootvex.agent import prompts
-from rootvex.agent.report import parse_report
+from rootvex.agent.report import add_code_findings, parse_report, verify_evidence
 from rootvex.agent.state import AgentState
 from rootvex.config import AgentSettings
 from rootvex.log import get_logger, new_run_id
+from rootvex.playbooks import Playbook, analyze, choose, devices_in
 
 _OUTPUT_TAG = re.compile(r'<untrusted_device_output device="([^"]*)" command="([^"]*)">')
+_OUTPUT_BLOCK = re.compile(
+    r'<untrusted_device_output device="([^"]*)" command="([^"]*)">\n?'
+    r"(.*?)\n?</untrusted_device_output>",
+    re.S,
+)
 
 log = get_logger("rootvex.agent")
 
@@ -59,6 +67,7 @@ def build_graph(
     cfg: AgentSettings,
     devices: Sequence[str] = (),
     on_event: Callable[[dict], None] | None = None,
+    playbooks: Sequence[Playbook] = (),
 ):
     tools_by_name = {t.name: t for t in tools}
 
@@ -85,8 +94,84 @@ def build_graph(
         plan = str(reply.content).strip()
         log.info("plan", plan=plan)
         emit({"type": "plan", "plan": plan})
-        collect = prompts.COLLECT.format(question=state["question"], plan=plan)
-        return {"plan": plan, "messages": [SystemMessage(prompts.SYSTEM), HumanMessage(collect)]}
+        return {"plan": plan}
+
+    def playbook_node(state: AgentState) -> dict:
+        """Run the matching playbook's checks in code. These do not use the model's steps;
+        they are capped separately at max_steps commands."""
+        question = state["question"]
+        book = choose(list(playbooks), question)
+        outputs = dict(state.get("outputs", {}))
+        executed = list(state.get("executed", []))
+        extra, findings = "", []
+        tool = tools_by_name.get("run_show_command")
+        if book and tool:
+            targets = devices_in(question, list(devices)) or list(devices)
+            emit({"type": "playbook", "playbook": book.title, "devices": targets})
+            ran: dict[tuple[str, str], str] = {}
+            cache: dict[str, str] = dict(state.get("cache", {}))
+            shown: list[str] = []
+            budget = cfg.max_steps
+            for check in book.checks:
+                for device in targets:
+                    if budget <= 0:
+                        break
+                    budget -= 1
+                    args = {"device": device, "command": check.command}
+                    try:
+                        result = str(tool.invoke(args))
+                    except Exception as exc:  # noqa: BLE001 - a failed check is reported
+                        result = f"ERROR: tool failed: {type(exc).__name__}: {exc}"
+                    log.info("playbook_check", playbook=book.id, args=args, result=result[:2000])
+                    emit(
+                        {
+                            "type": "tool",
+                            "step": 0,
+                            "tool": "playbook",
+                            "args": args,
+                            "result": result,
+                        }
+                    )
+                    shown.append(result)
+                    if not result.startswith(("DENIED", "ERROR")):
+                        cache[f"{_norm(device)}|{_norm(check.command)}"] = result
+                    for dev, command, text in _OUTPUT_BLOCK.findall(result):
+                        executed.append((dev, command))
+                        outputs[f"{_norm(dev)}|{_norm(command)}"] = text
+                        ran[(dev, command)] = text
+            findings = analyze(book, ran)
+            log.info("playbook_findings", playbook=book.id, findings=[f.cause for f in findings])
+            emit(
+                {
+                    "type": "findings",
+                    "playbook": book.title,
+                    "findings": [f.cause for f in findings],
+                }
+            )
+            listed = (
+                "\n".join(
+                    f"- {f.cause}"
+                    + (" (healthy)" if f.ok else " (symptom)" if f.symptom else "")
+                    + "".join(f'\n    {p.device}: "{p.quote}"' for p in f.proof)
+                    for f in findings
+                )
+                or "- nothing abnormal found by the code checks"
+            )
+            extra = prompts.PLAYBOOK.format(
+                title=book.title,
+                outputs="\n".join(shown),
+                findings=listed,
+                note=f"Note: {book.note.strip()}\n\n" if book.note else "",
+            )
+        collect = prompts.COLLECT.format(question=question, plan=state["plan"], playbook=extra)
+        return {
+            "messages": [SystemMessage(prompts.SYSTEM), HumanMessage(collect)],
+            "outputs": outputs,
+            "executed": executed,
+            "playbook": book.title if book and tool else "",
+            "findings": findings,
+            "cache": cache if book and tool else {},
+        }
 
     def agent_node(state: AgentState) -> dict:
         reply = _call_llm(llm_with_tools, state["messages"], "agent")
@@ -96,9 +181,16 @@ def build_graph(
         last = state["messages"][-1]
         steps = state.get("steps", 0)
         executed = list(state.get("executed", []))
+        outputs = dict(state.get("outputs", {}))
+        cache = state.get("cache", {})
         out: list[ToolMessage] = []
         for call in last.tool_calls:
-            if steps >= cfg.max_steps:
+            args = call.get("args") or {}
+            key = f"{_norm(str(args.get('device', '')))}|{_norm(str(args.get('command', '')))}"
+            if call["name"] == "run_show_command" and key in cache:
+                # The playbook already ran this: reuse it, no SSH, no step used.
+                result = cache[key] + "\n(already collected by the playbook; not run again)"
+            elif steps >= cfg.max_steps:
                 result = f"ERROR: step limit ({cfg.max_steps}) reached; no more tool calls."
             elif call["name"] not in tools_by_name:
                 result = f"ERROR: unknown tool {call['name']!r}."
@@ -110,6 +202,8 @@ def build_graph(
                     result = f"ERROR: tool failed: {type(exc).__name__}: {exc}"
             for device, command in _OUTPUT_TAG.findall(result):
                 executed.append((device, command))
+            for device, command, text in _OUTPUT_BLOCK.findall(result):
+                outputs[f"{_norm(device)}|{_norm(command)}"] = text
             log.info(
                 "tool_call", tool=call["name"], args=call["args"], step=steps, result=result[:2000]
             )
@@ -123,7 +217,7 @@ def build_graph(
                 }
             )
             out.append(ToolMessage(content=result, tool_call_id=call["id"], name=call["name"]))
-        return {"messages": out, "steps": steps, "executed": executed}
+        return {"messages": out, "steps": steps, "executed": executed, "outputs": outputs}
 
     def report_node(state: AgentState) -> dict:
         limit = state.get("limits_hit")
@@ -131,9 +225,10 @@ def build_graph(
         messages = list(state["messages"]) + [HumanMessage(prompts.REPORT.format(limit_note=note))]
         reply = _call_llm(llm, messages, "report")
         report = parse_report(str(reply.content))
-        ran = {(_norm(d), _norm(c)) for d, c in state.get("executed", [])}
-        for ev in report.evidence:
-            ev.verified = (_norm(ev.device), _norm(ev.command)) in ran
+        outputs = {tuple(k.split("|", 1)): v for k, v in state.get("outputs", {}).items()}
+        if state.get("playbook"):
+            add_code_findings(report, state["playbook"], state.get("findings", []))
+        verify_evidence(report, outputs)
         report.limits_hit = limit
         log.info("report", report=report.model_dump())
         emit({"type": "report", "report": report.model_dump()})
@@ -162,13 +257,15 @@ def build_graph(
 
     g = StateGraph(AgentState)
     g.add_node("plan", plan_node)
+    g.add_node("playbook", playbook_node)
     g.add_node("agent", agent_node)
     g.add_node("tools", tools_node)
     g.add_node("report", report_node)
     g.add_node("step_limit", mark_step_limit)
     g.add_node("timeout", mark_timeout)
     g.add_edge(START, "plan")
-    g.add_edge("plan", "agent")
+    g.add_edge("plan", "playbook")
+    g.add_edge("playbook", "agent")
     g.add_conditional_edges(
         "agent",
         after_agent,
@@ -188,19 +285,27 @@ def run_agent(
     cfg: AgentSettings,
     devices: Sequence[str] = (),
     on_event: Callable[[dict], None] | None = None,
+    playbooks: Sequence[Playbook] = (),
 ):
     """Run one troubleshooting session and return the final state (with `report`).
 
-    on_event, if given, receives progress events: plan, tool (one per call), report.
+    on_event, if given, receives progress events: plan, playbook, tool (one per call),
+    findings, report. playbooks: run the best-matching one before the model collects.
     """
     run_id = new_run_id()
     structlog.contextvars.bind_contextvars(run_id=run_id)
     log.info("run_start", question=question, max_steps=cfg.max_steps, timeout_s=cfg.timeout_s)
     try:
-        graph = build_graph(llm, tools, cfg, devices, on_event=on_event)
+        graph = build_graph(llm, tools, cfg, devices, on_event=on_event, playbooks=playbooks)
         # Each step is ~2 graph hops; give LangGraph headroom above our own limit.
         state = graph.invoke(
-            {"question": question, "steps": 0, "started_at": time.monotonic(), "executed": []},
+            {
+                "question": question,
+                "steps": 0,
+                "started_at": time.monotonic(),
+                "executed": [],
+                "outputs": {},
+            },
             config={"recursion_limit": cfg.max_steps * 3 + 10},
         )
         state["run_id"] = run_id
