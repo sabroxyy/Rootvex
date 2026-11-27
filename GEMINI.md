@@ -1,6 +1,6 @@
 # Notes for Gemini CLI (handoff from Claude Code)
 
-Read this first. Then `docs/PHASE4-5_STEPS.md` (the step-by-step plan), `docs/MANUAL.md` (Part 0 and Phase 4) and `lab/FAULTS.md`.
+Read this first. Then `docs/PHASE4_RUNBOOK.md` (exact procedure per fault), `docs/PHASE4-5_STEPS.md` (the step-by-step plan), `docs/MANUAL.md` (Part 0 and Phase 4) and `lab/FAULTS.md`.
 
 ## Project in one paragraph
 

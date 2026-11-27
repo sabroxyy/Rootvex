@@ -257,6 +257,7 @@ Stage B of the design: HQ, ISP and Branch, with out-of-band management.
 | `lab/README.md` | Build steps, checks, design notes, PNETLab notes |
 | `docs/rootvex-lab-3d.html` | Interactive 3D view: Phase 3 (live), Phase 4 (fault points), Later (FW1, managed SW1) |
 | `docs/rootvex-agent-3d.html` | Interactive 3D view of the agent: every stage a question passes through (plan, playbook, allowlist, lab check, SSH, redact, analyzers, model, quote check, report), with 3 playable situations |
+| `docs/PHASE4_RUNBOOK.md` (+ PDF) | Phase 4 runbook: plant, ask, check and undo each of the 11 lab faults |
 
 **Logical ports.** Router configs say `{{IF_MGMT}}`, `{{IF1}}`…; the platform
 maps them to real names, so the same configs run on any router image:
