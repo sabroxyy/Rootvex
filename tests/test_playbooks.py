@@ -115,3 +115,23 @@ def test_ospf_init_on_a_tunnel_points_to_ipsec():
     f = ospf_neighbors({("R2", "show ip ospf neighbor"): out})[0]
     assert "IPsec" in f.cause and "show crypto isakmp sa" in f.fix
     assert f.proof[0].quote.startswith("3.3.3.3") and "Tunnel0" in f.proof[0].quote
+
+
+def test_old_downs_do_not_count_as_flapping():
+    # Boot-time downs hours before, plus one recent down: not flapping.
+    from rootvex.playbooks.analyzers import interface_flaps
+
+    log = (
+        "*Nov 27 13:51:15.191: %LINEPROTO-5-UPDOWN: Line protocol on Interface "
+        "GigabitEthernet1/0, changed state to down\n"
+        "*Nov 27 15:00:00.000: %LINEPROTO-5-UPDOWN: Line protocol on Interface "
+        "GigabitEthernet1/0, changed state to down\n"
+        "*Nov 27 17:22:15.515: %LINEPROTO-5-UPDOWN: Line protocol on Interface "
+        "GigabitEthernet1/0, changed state to down\n"
+    )
+    assert interface_flaps({("R1", "show logging | include UPDOWN"): log}) == []
+
+
+def test_unused_port_is_not_reported_as_down():
+    book, outputs = run_scenario("interface_flap", "R1 link is flapping")
+    assert not any("GigabitEthernet3/0" in f.cause for f in analyze(book, outputs))

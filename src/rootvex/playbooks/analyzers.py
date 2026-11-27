@@ -263,22 +263,43 @@ def ospf_not_enabled(outputs: dict) -> list[Finding]:
 _UPDOWN = re.compile(
     r"LINEPROTO-5-UPDOWN: Line protocol on Interface (\S+), changed state to down", re.M
 )
+_LOG_TIME = re.compile(r"^\*?(\w{3}) +(\d+) (\d+):(\d+):(\d+)", re.M)
+_MONTHS = "Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec".split()
+FLAP_DOWNS = 2  # downs of one interface within FLAP_WINDOW_S of the newest log line
+FLAP_WINDOW_S = 15 * 60
+
+
+def _log_seconds(line: str) -> int | None:
+    """Seconds since start of year from an IOS log timestamp (*Nov 27 17:22:15.515)."""
+    m = _LOG_TIME.match(line.strip())
+    if not m or m[1] not in _MONTHS:
+        return None
+    month, day, h, mi, sec = _MONTHS.index(m[1]), int(m[2]), int(m[3]), int(m[4]), int(m[5])
+    return ((month * 31 + day) * 24 + h) * 3600 + mi * 60 + sec
 
 
 def interface_flaps(outputs: dict) -> list[Finding]:
-    """An interface that went down three or more times in the log buffer is flapping."""
+    """An interface whose line protocol went down 2+ times in the last 15 minutes of the
+    log is flapping. Older events (boot, earlier tests) are ignored."""
     findings = []
     for device, text in _outputs_for(outputs, "show logging").items():
+        stamps = [t for ln in text.splitlines() if (t := _log_seconds(ln)) is not None]
+        newest = max(stamps) if stamps else None
         downs = defaultdict(list)
         for m in _UPDOWN.finditer(text):
-            downs[m[1]].append(_line(text, re.escape(m[0])))
+            line = _line(text, re.escape(m[0]))
+            t = _log_seconds(line)
+            if newest is not None and t is not None and newest - t > FLAP_WINDOW_S:
+                continue
+            downs[m[1]].append(line)
         for iface, lines in downs.items():
-            if len(lines) >= 3:
+            if len(lines) >= FLAP_DOWNS:
                 findings.append(
                     Finding(
                         cause=f"{device} {iface} is flapping: line protocol went down "
-                        f"{len(lines)} times in the log",
-                        fix="Check the physical link, duplex/speed and errors on both ends",
+                        f"{len(lines)} times in the last 15 minutes of the log",
+                        fix="Check the physical link, duplex/speed and errors on both ends "
+                        "(in the lab: someone or something is shutting the port)",
                         proof=[Proof(device, "show logging", lines[-1])],
                         weight=88,
                         tags=["flap"],

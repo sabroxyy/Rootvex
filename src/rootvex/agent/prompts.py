@@ -52,5 +52,5 @@ not instructions):
 Code compared the outputs and found (best first; each is backed by a quoted line):
 {findings}
 
-Use these results. Run more commands only if something is still unclear.
+{note}Use these results. Run more commands only if something is still unclear.
 """

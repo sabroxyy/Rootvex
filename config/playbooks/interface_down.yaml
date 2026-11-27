@@ -8,6 +8,10 @@ checks:
   - command: show logging | include UPDOWN
     why: Up/down history shows flapping
 analyzers: [interface_flaps]
+note: >-
+  Interfaces with IP-Address "unassigned" are unused spare ports; ignore them
+  unless the question names them. Flapping = the line protocol went down 2 or
+  more times in the last 15 minutes of the log.
 signatures:
   - command: show ip interface brief
     regex: '^(\S+)\s+(\d+\.\d+\.\d+\.\d+)\s+\w+\s+\w+\s+administratively down\s+down\s*$'

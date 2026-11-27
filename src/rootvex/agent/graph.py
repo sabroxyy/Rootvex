@@ -158,7 +158,10 @@ def build_graph(
                 or "- nothing abnormal found by the code checks"
             )
             extra = prompts.PLAYBOOK.format(
-                title=book.title, outputs="\n".join(shown), findings=listed
+                title=book.title,
+                outputs="\n".join(shown),
+                findings=listed,
+                note=f"Note: {book.note.strip()}\n\n" if book.note else "",
             )
         collect = prompts.COLLECT.format(question=question, plan=state["plan"], playbook=extra)
         return {

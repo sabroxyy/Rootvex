@@ -60,6 +60,7 @@ class Playbook:
     checks: list[Check]
     signatures: list[Signature] = field(default_factory=list)
     analyzers: list[str] = field(default_factory=list)
+    note: str = ""  # extra guidance for the model, e.g. what to ignore
 
     def score(self, question: str) -> int:
         q = question.lower()
@@ -78,6 +79,7 @@ def load_playbooks(directory: Path) -> list[Playbook]:
                 checks=[Check(**c) for c in d.get("checks", [])],
                 signatures=[Signature(**s) for s in d.get("signatures", [])],
                 analyzers=d.get("analyzers", []),
+                note=d.get("note", ""),
             )
         )
     return books

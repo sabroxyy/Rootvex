@@ -100,17 +100,8 @@ SCENARIOS = {
             ),
         }
     },
-    "interface_flap": {
-        "R1": {
-            "show ip interface brief": brief(R1_UP, (G1, "10.0.12.1", "up", "up")),
-            "show logging": log(
-                *[
-                    f"%LINEPROTO-5-UPDOWN: Line protocol on Interface {G1}, changed state to {s}"
-                    for s in ("down", "up", "down", "up", "down", "up")
-                ]
-            ),
-        }
-    },
+    # interface_flap: real R1 output from the live lab (27 Nov), kept as recorded files;
+    # see tests/fixtures/scenarios/interface_flap/. Not generated here.
     "bgp_wrong_as": {
         "R1": {
             "show ip bgp summary": BGP_HEAD

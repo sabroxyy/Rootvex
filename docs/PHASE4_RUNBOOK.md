@@ -144,9 +144,9 @@ and run the health check in between.
 
 | | |
 |---|---|
-| Plant (R1) | Three times: `configure terminal` / `interface GigabitEthernet1/0` / `shutdown` / `no shutdown` / `end` (wait ~5 s between rounds) |
+| Plant (R1) | Two or three times: `configure terminal` / `interface GigabitEthernet1/0` / `shutdown` / `no shutdown` / `end` (wait ~5 s between rounds). Ask within 15 minutes. |
 | Ask | `R1 link is flapping` |
-| Expect | `R1 GigabitEthernet1/0 is flapping: line protocol went down 3 times` |
+| Expect | `R1 GigabitEthernet1/0 is flapping: line protocol went down N times in the last 15 minutes of the log` (N ≥ 2). Gi3/0 (`unassigned`, spare port) must not be the answer. |
 | Undo (R1) | Nothing to undo. `clear logging` (answer `yes`) resets the log for the next test |
 | Note | Flap R1 itself: in GNS3 a shutdown on R2 does not always take R1's line down. |
 
