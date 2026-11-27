@@ -287,7 +287,9 @@ def interface_flaps(outputs: dict) -> list[Finding]:
         newest = max(stamps) if stamps else None
         downs = defaultdict(list)
         for m in _UPDOWN.finditer(text):
-            line = _line(text, re.escape(m[0]))
+            start = text.rfind("\n", 0, m.start()) + 1
+            end = text.find("\n", m.start())
+            line = text[start : end if end != -1 else len(text)].strip()  # this line, not a twin
             t = _log_seconds(line)
             if newest is not None and t is not None and newest - t > FLAP_WINDOW_S:
                 continue

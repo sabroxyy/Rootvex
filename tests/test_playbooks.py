@@ -135,3 +135,11 @@ def test_old_downs_do_not_count_as_flapping():
 def test_unused_port_is_not_reported_as_down():
     book, outputs = run_scenario("interface_flap", "R1 link is flapping")
     assert not any("GigabitEthernet3/0" in f.cause for f in analyze(book, outputs))
+
+
+def test_flap_proof_is_the_newest_matching_line():
+    _, outputs = run_scenario("interface_flap", "R1 link is flapping")
+    from rootvex.playbooks.analyzers import interface_flaps
+
+    f = interface_flaps(outputs)[0]
+    assert f.proof[0].quote.startswith("*Nov 27 17:22:36.595")

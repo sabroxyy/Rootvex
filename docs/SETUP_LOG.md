@@ -209,7 +209,7 @@ then plant each fault from `lab/FAULTS.md` on the live lab.
   nothing was found and the model chased spare port Gi3/0. Fixed: flapping = 2+
   downs in the last 15 minutes of the log (older boot/test events ignored); the
   interface playbook tells the model to ignore `unassigned` ports. R1's real log
-  is now the recorded scenario. 92 tests pass.
+  is now the recorded scenario. 93 tests pass.
 - Remaining: rerun #6 and #9, do #10, #11.
 
 ## Next

@@ -77,7 +77,7 @@ file names there may change.
   R2 area 1) with high confidence.
 - Read-only device tools with a deny-by-default Cisco IOS allowlist, a lab-only
   inventory check, secret redaction, and untrusted-output wrapping.
-- 92 automated tests pass (`uv run pytest`), no devices or model needed.
+- 93 automated tests pass (`uv run pytest`), no devices or model needed.
 - The whole GNS3 lab is described as code (`lab/`) and builds with one command.
 - Health checks for the workstation: GPU (`lab/check_gpu.sh`) and GNS3
   (`lab/check_gns3_env.sh`).
