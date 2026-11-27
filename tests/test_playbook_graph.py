@@ -260,3 +260,30 @@ def test_acl_beats_wrong_default_route_answer_on_a_bgp_router():
     assert r.model_view.startswith("R2 lacks a default route")
     assert "BLOCK_WEB" in r.proposed_fix
     assert not any("traffic to internet addresses is dropped" in c for c in r.code_findings)
+
+
+def test_healthy_lab_with_old_fault_logs_reports_no_fault():
+    # Live 27 Nov health check after the fault tests: neighbors FULL, but the log
+    # still held "FULL to DOWN" lines from earlier tests. That is history.
+    tools, names = tools_for("ospf_healthy_oldlogs")
+    story = (
+        '{"likely_cause": "OSPF adjacency issues due to physical connectivity problems",'
+        ' "confidence": "medium"}'
+    )
+    llm = ScriptedChatModel(
+        script=[AIMessage(content="plan"), AIMessage(content="done"), AIMessage(content=story)],
+        calls=[],
+    )
+    state = run_agent(
+        "OSPF neighbor R1 R2 is down",
+        llm,
+        tools,
+        AgentSettings(),
+        names,
+        playbooks=load_playbooks(playbook_dir()),
+    )
+    r = state["report"]
+    assert r.likely_cause.startswith("No fault found by the code checks")
+    assert "FULL" in r.likely_cause
+    assert not any("lost OSPF neighbor" in c for c in r.code_findings)
+    assert r.model_view.startswith("OSPF adjacency issues")

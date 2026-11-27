@@ -77,7 +77,7 @@ file names there may change.
   R2 area 1) with high confidence.
 - Read-only device tools with a deny-by-default Cisco IOS allowlist, a lab-only
   inventory check, secret redaction, and untrusted-output wrapping.
-- 99 automated tests pass (`uv run pytest`), no devices or model needed.
+- 100 automated tests pass (`uv run pytest`), no devices or model needed.
 - The whole GNS3 lab is described as code (`lab/`) and builds with one command.
 - Health checks for the workstation: GPU (`lab/check_gpu.sh`) and GNS3
   (`lab/check_gns3_env.sh`).
@@ -770,6 +770,7 @@ uv sync && uv run pytest
 | 25 | Flapping missed, model blamed spare port Gi3/0 | Needed 3 downs in the whole log; "flapping" alone counted as the model agreeing | 2+ downs in 15 min; model must name the same interface to agree; spare ports ignored |
 | 26 | IPsec test showed no fault, model invented "SA not established" | Tunnel was still up (old SA); checks found only healthy output | Healthy results are reported (`OK: …`); "No fault found by the code checks" overrules an invented fault; runbook: clear both ends and send traffic |
 | 27 | "No default route" blamed on R2, ACL ranked second | R2 learns the web prefix by BGP and has no default route by design; ACL deny had a fixed low rank | No default route is a cause only without BGP routes; deny on web ports with hits ranks high; model must name the ACL to agree |
+| 28 | Health check after the tests reported an OSPF fault on a healthy lab | Old "FULL to DOWN" log lines from the fault tests were treated as current | FULL neighbors are reported healthy; a "lost neighbor" log line is dropped once that neighbor is FULL again; report says "No fault found by the code checks" |
 | 21 | Gemini review suggested OSPF outputs that IOS does not print | Reviewer model invented output formats | Recorded scenarios are written from real IOS 12.4 formats; live output wins |
 
 Lessons:

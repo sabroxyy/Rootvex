@@ -178,7 +178,18 @@ def ospf_neighbors(outputs: dict) -> list[Finding]:
         for m in rows:
             state, iface = m[2], m[4]
             line = m[0].strip()
-            if state == "INIT" and iface.lower().startswith("tunnel"):
+            if state == "FULL":
+                findings.append(
+                    Finding(
+                        f"{device}: OSPF neighbor {m[1]} on {iface} is FULL",
+                        proof=[Proof(device, "show ip ospf neighbor", line)],
+                        weight=5,
+                        symptom=True,
+                        ok=True,
+                        clears=[f"{device} lost OSPF neighbor {m[1]} "],
+                    )
+                )
+            elif state == "INIT" and iface.lower().startswith("tunnel"):
                 # Seen live (fault #9): a wrong IPsec key on a VTI shows up as OSPF INIT.
                 findings.append(
                     Finding(

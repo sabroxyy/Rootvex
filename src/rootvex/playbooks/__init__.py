@@ -37,6 +37,9 @@ class Finding:
     # True: a healthy result ("tunnel up, traffic both ways"), shown so the model
     # cannot invent a fault the outputs disprove. Always also a symptom (not a cause).
     ok: bool = False
+    # For ok findings: symptom causes containing any of these texts are history, not
+    # the current state (e.g. "R1 lost OSPF neighbor 2.2.2.2 " once 2.2.2.2 is FULL).
+    clears: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -152,6 +155,10 @@ def analyze(book: Playbook, outputs: dict[tuple[str, str], str]) -> list[Finding
     for f in findings:
         for p in f.proof:
             p.command = ran.get((p.device, base(p.command)), p.command)
+    cleared = [c for f in findings if f.ok for c in f.clears]
+    findings = [
+        f for f in findings if f.ok or not f.symptom or not any(c in f.cause for c in cleared)
+    ]
     seen, unique = set(), []
     for f in sorted(findings, key=lambda f: (f.symptom, -f.weight)):
         key = f.cause  # the same cause seen twice (e.g. repeated log lines) is one finding

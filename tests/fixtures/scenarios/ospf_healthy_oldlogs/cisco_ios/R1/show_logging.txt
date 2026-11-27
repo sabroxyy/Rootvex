@@ -1,0 +1,4 @@
+*Nov 27 13:52:03.403: %OSPF-5-ADJCHG: Process 1, Nbr 2.2.2.2 on GigabitEthernet1/0 from LOADING to FULL, Loading Done
+*Nov 27 14:50:13.975: %OSPF-5-ADJCHG: Process 1, Nbr 2.2.2.2 on GigabitEthernet1/0 from FULL to DOWN, Neighbor Down: Interface down or detached
+*Nov 27 14:53:43.671: %OSPF-5-ADJCHG: Process 1, Nbr 2.2.2.2 on GigabitEthernet1/0 from LOADING to FULL, Loading Done
+*Nov 27 14:56:17.623: %OSPF-5-ADJCHG: Process 1, Nbr 2.2.2.2 on GigabitEthernet1/0 from FULL to DOWN, Neighbor Down: Dead timer expired

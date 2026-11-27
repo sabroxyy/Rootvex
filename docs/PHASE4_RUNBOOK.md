@@ -52,8 +52,9 @@ ping -c 2 10.99.0.14          # ISP1
 uv run rootvex ask "OSPF neighbor R1 R2 is down"
 ```
 
-Pass: no root cause in **Code checks found**, R1–R2 FULL. If a cause shows up,
-a previous fault was not undone — undo it first.
+Pass: `Likely cause: No fault found by the code checks: … FULL …`. Old
+"FULL to DOWN" log lines from earlier tests are ignored once the neighbor is
+FULL again. If a cause shows up, a previous fault was not undone — undo it first.
 
 ### 1.4 How to run and save each test
 
