@@ -287,3 +287,26 @@ def test_healthy_lab_with_old_fault_logs_reports_no_fault():
     assert "FULL" in r.likely_cause
     assert not any("lost OSPF neighbor" in c for c in r.code_findings)
     assert r.model_view.startswith("OSPF adjacency issues")
+
+
+def test_model_agreeing_the_lab_is_healthy_is_not_flagged():
+    tools, names = tools_for("ospf_healthy_oldlogs")
+    healthy = (
+        '{"likely_cause": "OSPF adjacencies are in the FULL state on all routers, '
+        'indicating healthy connections.", "confidence": "high"}'
+    )
+    llm = ScriptedChatModel(
+        script=[AIMessage(content="plan"), AIMessage(content="done"), AIMessage(content=healthy)],
+        calls=[],
+    )
+    state = run_agent(
+        "OSPF neighbor R1 R2 is down",
+        llm,
+        tools,
+        AgentSettings(),
+        names,
+        playbooks=load_playbooks(playbook_dir()),
+    )
+    r = state["report"]
+    assert r.likely_cause.startswith("No fault found by the code checks")
+    assert r.model_view == ""

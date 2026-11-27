@@ -142,7 +142,12 @@ def add_code_findings(report: Report, playbook: str, findings: list) -> None:
                         Evidence(device=p.device, command=p.command, finding=f.cause, quote=p.quote)
                     )
                     have.add((_squash(p.device), _squash(p.quote)))
-        if report.likely_cause.strip():
+        agrees = re.search(
+            r"\b(healthy|no (fault|issue|problem)s?|working (normally|correctly)|is up|"
+            r"are up|full state|in (the )?full)\b",
+            report.likely_cause.lower(),
+        )
+        if report.likely_cause.strip() and not agrees:
             report.model_view = report.likely_cause
         report.likely_cause = "No fault found by the code checks: " + "; ".join(
             f.cause for f in healthy[:4]
