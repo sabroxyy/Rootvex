@@ -40,7 +40,7 @@ file names there may change.
 | 1 | Skeleton | ✅ Done — config, audit log, CLI, tests, CI |
 | 2 | Agent loop | ✅ Done — LangGraph agent, limits, structured report |
 | 3 | Read-only device tools | ✅ Done — tested on recorded outputs and on the live GNS3 lab |
-| 4 | Troubleshooting playbooks | 🟡 **Built** — 5 playbooks, quote-checked evidence, 11 recorded faults found; **live lab: 9/11 proven** (passive, timers, area, MTU, shutdown, flapping, BGP wrong AS, BGP shut, IPsec key) |
+| 4 | Troubleshooting playbooks | 🟡 **Built** — 5 playbooks, quote-checked evidence, 11 recorded faults found; **live lab: 10/11 proven** (passive, timers, area, MTU, shutdown, flapping, BGP wrong AS, BGP shut, IPsec key, no default route) |
 | 5 | Knowledge base (RAG) | ⬜ Planned |
 | 6 | Evaluation | ⬜ Planned |
 | 7 | API and web UI | 🟡 Prototype built early: local chat page, login, live steps, Approve/Reject recorded, SQLite |
@@ -563,7 +563,7 @@ uv run rootvex ask "BGP peer on R1 is down" --scenario bgp_wrong_as
 Then on the live lab, follow `lab/FAULTS.md`: plant, ask, check, undo.
 
 **Done when:** each playbook finds its planted fault **in the live lab** and
-cites the proof. Recorded: ✅ 11/11. Live: 🟡 9/11 (27 Nov 2026):
+cites the proof. Recorded: ✅ 11/11. Live: 🟡 10/11 (27 Nov 2026):
 
 | # | Fault | Live result |
 |---|---|---|
@@ -576,7 +576,8 @@ cites the proof. Recorded: ✅ 11/11. Live: 🟡 9/11 (27 Nov 2026):
 | 3 | `ospf_area` | ✅ area mismatch, quotes `Area 0` / `Area 1` |
 | 8 | `bgp_admin_shut` | ✅ `Idle (Admin)`: neighbor shut down |
 | 9 | `ipsec_psk` | ✅ phase 1 stuck in `MM_NO_STATE` on BR1 and R2 (third run; earlier: wrong question, then fault not active) |
-| 10–11 | no default route, ACL | ⬜ to do |
+| 10 | `website_no_default` | ✅ R1 has no default route, quote `Gateway of last resort is not set`; model agreed |
+| 11 | `website_acl` | ⬜ to do |
 
 **Add a playbook:** copy a YAML in `config/playbooks/`, set `keywords`, ordered
 `checks` (allowlisted commands only), regex `signatures` (`{1}` = first group,

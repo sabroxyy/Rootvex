@@ -1,7 +1,7 @@
 # Rootvex Phase 4 Runbook — proving the playbooks on the live lab
 
-**Version 1 — 27 November 2026.** Branch `phase4`. Progress: **9 of 11 faults proven live**
-(#1–#9). #10–#11 to do.
+**Version 1 — 27 November 2026.** Branch `phase4`. Progress: **10 of 11 faults proven live**
+(#1–#10). #11 to do.
 
 This runbook is the exact procedure for planting each lab fault, asking Rootvex,
 checking the answer, and putting the lab back. **Lab only.** Rootvex never changes
@@ -182,7 +182,7 @@ and run the health check in between.
 | If the tunnel is still up | Rootvex now says `No fault found by the code checks: … QM_IDLE … traffic both ways` — the fault is not active yet; clear again and send traffic |
 | Undo (BR1) | `configure terminal` / `crypto isakmp key <real key> address 203.0.113.1` / `end`, then `clear crypto session` on both. The real key is `LAB_VPN_PSK` in `.env` — read it there, do not paste it in chat. |
 
-### #10 No default route ("can't reach website") — ⬜
+### #10 No default route ("can't reach website") — ✅ proven 27 Nov
 
 | | |
 |---|---|
@@ -249,5 +249,5 @@ After each fault, add a row to `docs/SETUP_LOG.md` section 16:
 | 7 | BGP wrong AS | ✅ 27 Nov |
 | 8 | BGP shut down | ✅ 27 Nov |
 | 9 | IPsec key | ✅ 27 Nov |
-| 10 | No default route | ⬜ |
+| 10 | No default route | ✅ 27 Nov |
 | 11 | ACL blocks web | ⬜ |

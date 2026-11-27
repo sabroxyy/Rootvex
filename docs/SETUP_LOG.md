@@ -225,7 +225,9 @@ then plant each fault from `lab/FAULTS.md` on the live lab.
   column). 97 tests pass.
 - #9 run 3 ✅. IOS lists the old `QM_IDLE` SA next to the failing one during a
   rekey; that stale row is no longer reported as "up". 97 tests pass.
-- Remaining: #10, #11.
+| 10 | R1 `no ip route 0.0.0.0 0.0.0.0 10.0.12.2` | no default route | same, quote `Gateway of last resort is not set`, model agreed, confidence high | ✅ |
+
+- Remaining: #11.
 
 ## Next
 
@@ -243,7 +245,7 @@ then plant each fault from `lab/FAULTS.md` on the live lab.
 - [x] Build the lab: `uv run python lab/build_gns3_lab.py --rebuild --start`
 - [x] `ssh rootvex@10.99.0.11` from the host; Phase 3 live-lab checks passed
 - [x] Phase 4 playbooks built and proven on recorded faults
-- [ ] Phase 4 live proof: plant the 11 faults in `lab/FAULTS.md`, check each top finding (9/11 done: #1–#9; #10–#11 to do)
+- [ ] Phase 4 live proof: plant the 11 faults in `lab/FAULTS.md`, check each top finding (10/11 done: #1–#10; #11 to do)
 - [ ] Optional: IOSv + IOSvL2 (CML-Personal) for a managed SW1
 - [ ] NVIDIA Container Toolkit (Phase 9)
 - [ ] Open WebUI (Phase 7, optional)
