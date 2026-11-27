@@ -1,7 +1,7 @@
 # Rootvex design (Phase 0)
 
-**Version 4 — 25 November 2026** (renamed from NetWarden on 22 November). Phases 0–3 are complete;
-Phase 4 (playbooks) is built and proven on recorded faults (section 11.7); live-lab proof is next.
+**Version 5 — 27 November 2026** (renamed from NetWarden on 22 November). Phases 0–4 are complete;
+Phase 4 (playbooks) is proven on all 11 planted lab faults (sections 11.7–11.8).
 Sections 1–10 are the original Phase 0 design, kept as the record of what was
 agreed. **Section 11 lists what changed during the build and answers the open
 questions.** Current status and how-to: [`MANUAL.md`](MANUAL.md).
@@ -466,4 +466,22 @@ Changes from section 3.4:
 - **Not done in Phase 4:** live-lab proof (needs the workstation), DNS and
   PC-gateway checks for "can't reach website" (hosts are not managed devices),
   err-disable/duplex faults (SW1 is unmanaged).
+
+### 11.8 Phase 4 live-lab proof (27 Nov 2026)
+
+All 11 faults in `docs/PHASE4_RUNBOOK.md` were planted on the GNS3 lab and found.
+The live runs changed the design in five places:
+
+- **Code with proof beats the model.** The model's answer is kept only if it
+  names the same cause (finding `tags`) and, for interface/ACL findings, the
+  same interface or ACL (`must`). Otherwise it is shown as `model_view`.
+- **Healthy results are findings too** (`ok`). When the checks find no cause but
+  prove the checked parts work, the report says "No fault found by the code
+  checks" instead of the model's guess.
+- **Rules learned from real output:** flapping = 2+ downs in 15 minutes; a stale
+  `QM_IDLE` row during a failed rekey is not "up"; no default route is a cause
+  only on a router without BGP routes; a deny on web ports with hits ranks high.
+- **OSPF INIT on a tunnel** points to IPsec (a wrong IPsec key looked like OSPF).
+- **Recorded scenarios now include real lab output** (flap, IPsec healthy, IPsec
+  rekey failure, R2 routes and ACLs).
 

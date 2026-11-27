@@ -1,7 +1,6 @@
 # Rootvex Phase 4 Runbook — proving the playbooks on the live lab
 
-**Version 1 — 27 November 2026.** Branch `phase4`. Progress: **10 of 11 faults proven live**
-(#1–#10). #11 to do.
+**Version 1 — 27 November 2026.** Branch `phase4`. Progress: **11 of 11 faults proven live — Phase 4 complete (27 Nov 2026).**
 
 This runbook is the exact procedure for planting each lab fault, asking Rootvex,
 checking the answer, and putting the lab back. **Lab only.** Rootvex never changes
@@ -191,7 +190,7 @@ and run the health check in between.
 | Expect | Playbook *User cannot reach a website*; `R1 has no default route`; quote `Gateway of last resort is not set` |
 | Undo (R1) | `configure terminal` / `ip route 0.0.0.0 0.0.0.0 10.0.12.2` / `end` |
 
-### #11 ACL blocking web traffic — 🟡 rerun after fix (27 Nov: ACL found but ranked below "no default route")
+### #11 ACL blocking web traffic — ✅ proven 27 Nov (after fix)
 
 | | |
 |---|---|
@@ -250,4 +249,4 @@ After each fault, add a row to `docs/SETUP_LOG.md` section 16:
 | 8 | BGP shut down | ✅ 27 Nov |
 | 9 | IPsec key | ✅ 27 Nov |
 | 10 | No default route | ✅ 27 Nov |
-| 11 | ACL blocks web | 🟡 rerun after fix |
+| 11 | ACL blocks web | ✅ 27 Nov |

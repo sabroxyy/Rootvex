@@ -21,8 +21,8 @@ Rules for everyone working on this (Claude Code, Gemini CLI, you): see `GEMINI.m
 | Model re-asking a playbook command reuses the output | ✅ Done |
 | 11 recorded faults + 1 healthy case pass (`--scenario`) | ✅ Done — 89 tests pass |
 | Recorded run on the workstation (`--scenario ospf_passive`) | ✅ Correct answer, confidence high |
-| **Live-lab proof of the 11 faults** | 🟡 **10/11** — #1–#10 ✅; #11 rerun after fix |
-| Merge `phase4` into `main` | ⬜ After live proof |
+| **Live-lab proof of the 11 faults** | ✅ **11/11** (27 Nov) |
+| Merge `phase4` into `main` | ⬜ Your review |
 
 ### Steps to finish Phase 4
 

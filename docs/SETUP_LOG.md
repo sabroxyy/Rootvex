@@ -226,12 +226,12 @@ then plant each fault from `lab/FAULTS.md` on the live lab.
   column). 99 tests pass.
 - #9 run 3 ✅. IOS lists the old `QM_IDLE` SA next to the failing one during a
   rekey; that stale row is no longer reported as "up". 99 tests pass.
-| 11 | R2 ACL `BLOCK_WEB` deny www, applied in on Gi1/0 | ACL deny with hits | run 1: ACL found (4 hits) but top cause was "R2 has no default route" (false: R2 uses BGP routes) | 🟡 rerun |
+| 11 | R2 ACL `BLOCK_WEB` deny www, applied in on Gi1/0 | ACL deny with hits | run 1: ACL found (4 hits) but top cause was "R2 has no default route" (false: R2 uses BGP routes); run 2 after fix: `BLOCK_WEB` denies www, 4 hits, model named the ACL | ✅ |
 
 - #11 fix: "no default route" is only a cause when the router has no BGP routes;
   a deny on web ports with hits ranks high and the model must name the ACL to
   agree. 99 tests pass.
-- Remaining: rerun #11.
+- **Result: 11/11 faults proven on the live lab. Phase 4 complete.**
 
 ## Next
 
@@ -249,7 +249,7 @@ then plant each fault from `lab/FAULTS.md` on the live lab.
 - [x] Build the lab: `uv run python lab/build_gns3_lab.py --rebuild --start`
 - [x] `ssh rootvex@10.99.0.11` from the host; Phase 3 live-lab checks passed
 - [x] Phase 4 playbooks built and proven on recorded faults
-- [ ] Phase 4 live proof: plant the 11 faults in `lab/FAULTS.md`, check each top finding (10/11 done: #1–#10; #11 to do)
+- [x] Phase 4 live proof: plant the 11 faults in `lab/FAULTS.md`, check each top finding (11/11 done)
 - [ ] Optional: IOSv + IOSvL2 (CML-Personal) for a managed SW1
 - [ ] NVIDIA Container Toolkit (Phase 9)
 - [ ] Open WebUI (Phase 7, optional)

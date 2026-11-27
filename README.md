@@ -4,13 +4,13 @@ A self-hosted, open-source AI agent that helps network and security engineers
 troubleshoot and configure network and security devices — built from scratch,
 running locally, lab-first.
 
-> **Status (25 Nov 2026):** Phases 0–3 complete; **Phase 4 built** on branch
-> `phase4`: 5 troubleshooting playbooks (OSPF, interface, BGP, IPsec, website)
-> run read-only checks in code first, and every finding quotes a line from the
-> device output that code verifies. Proven on 11 recorded faults; planting them
-> in the live lab is next ([`lab/FAULTS.md`](lab/FAULTS.md)). The live GNS3 lab
-> (4 Cisco 7200, IOS 12.4) runs; config commands are denied before they reach a
-> device. (Renamed from NetWarden on 22 Nov 2026.)
+> **Status (27 Nov 2026):** Phases 0–4 complete. **Phase 4** (branch `phase4`):
+> 5 troubleshooting playbooks (OSPF, interface, BGP, IPsec, website) run
+> read-only checks in code first; every finding quotes a line from the device
+> output that code verifies; a proven code finding overrules a wrong model
+> answer. **All 11 planted faults were found on the live GNS3 lab**
+> ([runbook](docs/PHASE4_RUNBOOK.md)). Config commands are denied before they
+> reach a device. Next: Phase 5, knowledge base. (Renamed from NetWarden on 22 Nov 2026.)
 > Full status and how-to: [`docs/MANUAL.md`](docs/MANUAL.md)
 > ([PDF](docs/Rootvex-Manual.pdf)).
 

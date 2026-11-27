@@ -1,6 +1,6 @@
 # Rootvex Manual
 
-**Version 4 — status as of 25 November 2026: Phase 4 built; proven on recorded faults, live-lab proof next.** Rootvex was called NetWarden until 22 November 2026; the rename is complete.
+**Version 5 — status as of 27 November 2026: Phase 4 complete — all 11 lab faults proven on the live lab.** Rootvex was called NetWarden until 22 November 2026; the rename is complete.
 
 A step-by-step guide to building, running, and growing Rootvex: a
 self-hosted AI agent that helps network and security engineers troubleshoot
@@ -40,7 +40,7 @@ file names there may change.
 | 1 | Skeleton | ✅ Done — config, audit log, CLI, tests, CI |
 | 2 | Agent loop | ✅ Done — LangGraph agent, limits, structured report |
 | 3 | Read-only device tools | ✅ Done — tested on recorded outputs and on the live GNS3 lab |
-| 4 | Troubleshooting playbooks | 🟡 **Built** — 5 playbooks, quote-checked evidence, 11 recorded faults found; **live lab: 10/11 proven** (passive, timers, area, MTU, shutdown, flapping, BGP wrong AS, BGP shut, IPsec key, no default route) |
+| 4 | Troubleshooting playbooks | ✅ Done — 5 playbooks, quote-checked evidence, code overrules a wrong model; **11/11 faults proven on the live lab** (runbook: `docs/PHASE4_RUNBOOK.md`) |
 | 5 | Knowledge base (RAG) | ⬜ Planned |
 | 6 | Evaluation | ⬜ Planned |
 | 7 | API and web UI | 🟡 Prototype built early: local chat page, login, live steps, Approve/Reject recorded, SQLite |
@@ -87,9 +87,12 @@ file names there may change.
 
 ### Known limitations
 
-- **Live-lab proof of Phase 4 is still to do.** The playbooks are proven on
-  recorded outputs written in IOS 12.4 format; the faults must still be planted
-  in GNS3 (`lab/FAULTS.md`). If live output differs, record it and fix the playbook.
+- **The 3B model is often wrong on its own.** In the live runs it blamed spare
+  ports, invented IPsec failures and confused symptoms; the code checks caught
+  each case. Outside the 5 playbooks there are no code checks to catch it.
+- **Code findings are only as good as their rules.** Live runs found 4 rule
+  gaps (flap threshold, stale IPsec rows, default route on a BGP router, ACL
+  ranking), all fixed. New faults may find more; record and fix them the same way.
 - **Questions outside the 5 playbooks** still rely on the small model alone,
   which may stop early. The quote check keeps it honest, not complete.
 - **The quote check proves a line exists, not that the conclusion is right.**
@@ -116,11 +119,10 @@ Only history lines still say "NetWarden" (the original name decision and the
 
 ### Next steps
 
-1. **You:** plant each fault in `lab/FAULTS.md` on the live lab, ask the
-   question, check the top finding; undo. Save any output that differs from the
-   recording into `tests/fixtures/scenarios/`.
-2. Merge branch `phase4` into `main` after review.
-3. Phase 5 — knowledge base (RAG).
+1. Review branch `phase4` and merge it into `main` (your decision).
+2. Phase 5 — knowledge base (RAG): `docs/PHASE4-5_STEPS.md`.
+3. Optional: speed (one SSH session per router, parallel checks, skip the plan
+   when a playbook matches).
 4. Optional: IOSv + IOSvL2 (CML-Personal) for a managed SW1 —
    `LAB_ROUTER_PLATFORM=iosv`, `LAB_SWITCH_PLATFORM=iosvl2`; configs don't change.
 
@@ -475,7 +477,7 @@ uv run rootvex ask "Is OSPF healthy between R1 and R2?" --steps     # live lab
 
 ---
 
-### Phase 4 — Troubleshooting playbooks 🟡 *(built; live-lab proof next)*
+### Phase 4 — Troubleshooting playbooks ✅
 
 **Goal:** give the small model an ordered checklist so it does not stop early,
 and make every finding provable. The first OSPF run showed why: without a
@@ -563,21 +565,23 @@ uv run rootvex ask "BGP peer on R1 is down" --scenario bgp_wrong_as
 Then on the live lab, follow `lab/FAULTS.md`: plant, ask, check, undo.
 
 **Done when:** each playbook finds its planted fault **in the live lab** and
-cites the proof. Recorded: ✅ 11/11. Live: 🟡 10/11 (27 Nov 2026):
+cites the proof. Recorded: ✅ 11/11. Live: ✅ 11/11 (27 Nov 2026):
 
 | # | Fault | Live result |
 |---|---|---|
 | 1 | `ospf_passive` | ✅ R1 Gi1/0 passive OSPF interface, confidence high |
 | 2 | `ospf_timers` | ✅ hello/dead mismatch on R1/R2 Gi1/0, 10/40 vs 5/20 |
+| 3 | `ospf_area` | ✅ area mismatch, quotes `Area 0` / `Area 1` |
 | 4 | `ospf_mtu` | ✅ stuck in EXSTART/EXCHANGE, MTU mismatch |
 | 5 | `interface_shutdown` | ✅ interface administratively down, confidence high |
 | 6 | `interface_flap` | ✅ after fix: Gi1/0 went down 2 times in 15 min (first run missed it: needed 3 downs) |
 | 7 | `bgp_wrong_as` | ✅ wrong remote AS between R2 and ISP1 |
-| 3 | `ospf_area` | ✅ area mismatch, quotes `Area 0` / `Area 1` |
 | 8 | `bgp_admin_shut` | ✅ `Idle (Admin)`: neighbor shut down |
 | 9 | `ipsec_psk` | ✅ phase 1 stuck in `MM_NO_STATE` on BR1 and R2 (third run; earlier: wrong question, then fault not active) |
 | 10 | `website_no_default` | ✅ R1 has no default route, quote `Gateway of last resort is not set`; model agreed |
-| 11 | `website_acl` | 🟡 run 1: ACL found (4 hits) but ranked below a false "no default route" on R2; fixed, rerun |
+| 11 | `website_acl` | ✅ after fix: `BLOCK_WEB` denies www, 4 hits; model named the ACL (run 1 ranked a false "no default route" on R2 first) |
+
+**Result: 11/11 proven on the live lab (27 Nov 2026). Phase 4 is done.**
 
 **Add a playbook:** copy a YAML in `config/playbooks/`, set `keywords`, ordered
 `checks` (allowlisted commands only), regex `signatures` (`{1}` = first group,
