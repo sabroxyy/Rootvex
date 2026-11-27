@@ -44,6 +44,10 @@ fix the regex in `src/rootvex/playbooks/analyzers.py` or the playbook YAML.
 - Never read, print or send `.env`, `config/inventory.local.yaml`, `data/`,
   `logs/` or any key or password (`.geminiignore` blocks them). Never ask the
   user to paste a password into chat.
+- Ask Rootvex the exact question from the runbook card, not a pasted log line.
+- When you report a result, copy Rootvex's own `Likely cause`, `Code checks found`
+  and `Proposed fix` lines. Do not add your own diagnosis or fix to them; if you
+  think Rootvex is wrong, say so separately.
 - Do not invent device output. Only real router output or the recorded files
   count as evidence. (A past review invented OSPF output formats.)
 - Show the exact command and the real result before saying something works.

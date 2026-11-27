@@ -1,7 +1,7 @@
 # Rootvex Phase 4 Runbook — proving the playbooks on the live lab
 
-**Version 1 — 27 November 2026.** Branch `phase4`. Progress: **6 of 11 faults proven live**
-(#1, #2, #4, #5, #6, #7; #3 run, result to confirm).
+**Version 1 — 27 November 2026.** Branch `phase4`. Progress: **7 of 11 faults proven live**
+(#1–#5, #7, #8). #6 to confirm, #9 to rerun, #10–#11 to do.
 
 This runbook is the exact procedure for planting each lab fault, asking Rootvex,
 checking the answer, and putting the lab back. **Lab only.** Rootvex never changes
@@ -66,6 +66,15 @@ answer is wrong: the raw output is what fixes the playbook.
 
 ### 1.5 How to judge a result
 
+**Use the exact question from the fault card.** Pasting a log line as the
+question can pick a different playbook (on 27 Nov an IPsec fault was asked as
+OSPF log lines, so the OSPF playbook ran).
+
+**Judge from Rootvex's own output, not an assistant's summary.** Open the full
+output (Ctrl+O in Gemini) and read the `Likely cause`, `Code checks found` and
+`Proposed fix` lines. On 27 Nov an assistant summary added fixes Rootvex never printed.
+
+
 | Check | Pass when |
 |---|---|
 | **Playbook** | The one named in the fault card |
@@ -101,7 +110,7 @@ and run the health check in between.
 | Expect | `OSPF hello/dead timer mismatch … 10/40 vs 5/20`; quotes `Hello 10, Dead 40` (R1) and `Hello 5, Dead 20` (R2) |
 | Undo (R2) | `configure terminal` / `interface GigabitEthernet1/0` / `no ip ospf hello-interval` / `end` |
 
-### #3 OSPF area mismatch — 🟡 run 27 Nov, result to confirm
+### #3 OSPF area mismatch — ✅ proven 27 Nov
 
 | | |
 |---|---|
@@ -131,7 +140,7 @@ and run the health check in between.
 | Expect | Playbook *Interface down or flapping*; `R1 GigabitEthernet1/0 (10.0.12.1) is administratively shut down` |
 | Undo (R1) | `configure terminal` / `interface GigabitEthernet1/0` / `no shutdown` / `end` |
 
-### #6 Interface flapping — ✅ proven 27 Nov
+### #6 Interface flapping — ❓ run 27 Nov, flapping finding not visible in the saved output
 
 | | |
 |---|---|
@@ -151,7 +160,7 @@ and run the health check in between.
 | Expect | Playbook *BGP neighbor down*; `neighbor 203.0.113.2 reports a bad remote AS`; quote from `%BGP-3-NOTIFICATION … (peer in wrong AS)` |
 | Undo (R2) | `configure terminal` / `router bgp 65001` / `neighbor 203.0.113.2 remote-as 65100` / `end` |
 
-### #8 BGP neighbor shut down — ⬜
+### #8 BGP neighbor shut down — ✅ proven 27 Nov
 
 | | |
 |---|---|
@@ -160,7 +169,7 @@ and run the health check in between.
 | Expect | `BGP neighbor 203.0.113.2 is administratively shut down`; quote the `Idle (Admin)` row |
 | Undo (R2) | `configure terminal` / `router bgp 65001` / `no neighbor 203.0.113.2 shutdown` / `end` |
 
-### #9 IPsec pre-shared key mismatch — ⬜
+### #9 IPsec pre-shared key mismatch — ❌ rerun (27 Nov run used a log line as the question, so the OSPF playbook ran)
 
 | | |
 |---|---|
@@ -230,12 +239,12 @@ After each fault, add a row to `docs/SETUP_LOG.md` section 16:
 |---|---|---|
 | 1 | OSPF passive | ✅ 27 Nov |
 | 2 | OSPF timers | ✅ 27 Nov |
-| 3 | OSPF area | 🟡 run, result to confirm |
+| 3 | OSPF area | ✅ 27 Nov |
 | 4 | OSPF MTU | ✅ 27 Nov |
 | 5 | Interface shutdown | ✅ 27 Nov |
-| 6 | Interface flapping | ✅ 27 Nov |
+| 6 | Interface flapping | ❓ to confirm |
 | 7 | BGP wrong AS | ✅ 27 Nov |
-| 8 | BGP shut down | ⬜ |
-| 9 | IPsec key | ⬜ |
+| 8 | BGP shut down | ✅ 27 Nov |
+| 9 | IPsec key | ❌ rerun with the exact question |
 | 10 | No default route | ⬜ |
 | 11 | ACL blocks web | ⬜ |

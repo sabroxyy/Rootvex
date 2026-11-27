@@ -40,7 +40,7 @@ file names there may change.
 | 1 | Skeleton | ✅ Done — config, audit log, CLI, tests, CI |
 | 2 | Agent loop | ✅ Done — LangGraph agent, limits, structured report |
 | 3 | Read-only device tools | ✅ Done — tested on recorded outputs and on the live GNS3 lab |
-| 4 | Troubleshooting playbooks | 🟡 **Built** — 5 playbooks, quote-checked evidence, 11 recorded faults found; **live lab: 6/11 proven** (passive, timers, MTU, shutdown, flap, BGP wrong AS) |
+| 4 | Troubleshooting playbooks | 🟡 **Built** — 5 playbooks, quote-checked evidence, 11 recorded faults found; **live lab: 7/11 proven** (passive, timers, area, MTU, shutdown, BGP wrong AS, BGP shut) |
 | 5 | Knowledge base (RAG) | ⬜ Planned |
 | 6 | Evaluation | ⬜ Planned |
 | 7 | API and web UI | 🟡 Prototype built early: local chat page, login, live steps, Approve/Reject recorded, SQLite |
@@ -77,7 +77,7 @@ file names there may change.
   R2 area 1) with high confidence.
 - Read-only device tools with a deny-by-default Cisco IOS allowlist, a lab-only
   inventory check, secret redaction, and untrusted-output wrapping.
-- 89 automated tests pass (`uv run pytest`), no devices or model needed.
+- 90 automated tests pass (`uv run pytest`), no devices or model needed.
 - The whole GNS3 lab is described as code (`lab/`) and builds with one command.
 - Health checks for the workstation: GPU (`lab/check_gpu.sh`) and GNS3
   (`lab/check_gns3_env.sh`).
@@ -563,7 +563,7 @@ uv run rootvex ask "BGP peer on R1 is down" --scenario bgp_wrong_as
 Then on the live lab, follow `lab/FAULTS.md`: plant, ask, check, undo.
 
 **Done when:** each playbook finds its planted fault **in the live lab** and
-cites the proof. Recorded: ✅ 11/11. Live: 🟡 6/11 (27 Nov 2026):
+cites the proof. Recorded: ✅ 11/11. Live: 🟡 7/11 (27 Nov 2026):
 
 | # | Fault | Live result |
 |---|---|---|
@@ -571,10 +571,12 @@ cites the proof. Recorded: ✅ 11/11. Live: 🟡 6/11 (27 Nov 2026):
 | 2 | `ospf_timers` | ✅ hello/dead mismatch on R1/R2 Gi1/0, 10/40 vs 5/20 |
 | 4 | `ospf_mtu` | ✅ stuck in EXSTART/EXCHANGE, MTU mismatch |
 | 5 | `interface_shutdown` | ✅ interface administratively down, confidence high |
-| 6 | `interface_flap` | ✅ interface flapping |
+| 6 | `interface_flap` | ❓ to confirm: flapping finding not visible in the saved output |
 | 7 | `bgp_wrong_as` | ✅ wrong remote AS between R2 and ISP1 |
-| 3 | `ospf_area` | 🟡 run and undone; result to confirm |
-| 8–11 | BGP shut, IPsec key, no default route, ACL | ⬜ to do |
+| 3 | `ospf_area` | ✅ area mismatch, quotes `Area 0` / `Area 1` |
+| 8 | `bgp_admin_shut` | ✅ `Idle (Admin)`: neighbor shut down |
+| 9 | `ipsec_psk` | ❌ rerun: asked as OSPF log lines, so the OSPF playbook ran (found INIT on Tunnel0) |
+| 10–11 | no default route, ACL | ⬜ to do |
 
 **Add a playbook:** copy a YAML in `config/playbooks/`, set `keywords`, ordered
 `checks` (allowlisted commands only), regex `signatures` (`{1}` = first group,
@@ -758,6 +760,8 @@ uv sync && uv run pytest
 | 19 | Live run credited R2's Tunnel0 to R1 | Evidence was only checked for "command ran", not content | Quote check: each finding quotes a line that must be in that device's output |
 | 20 | Small model stopped after "no neighbors" | No checklist | Playbooks run fixed checks in code first; analyzers compare both ends |
 | 22 | Model ignored the proven passive-interface finding and answered "both routers are DR", confidence high | Rule kept any confident model answer | Code cause wins unless the model names it (tags); model's answer shown as *Model's view* |
+| 23 | Wrong IPsec key looked like an OSPF problem (neighbor in INIT on Tunnel0) | The question was pasted log lines, so the OSPF playbook ran | INIT on a tunnel now points to IPsec checks; runbook says: use the exact question |
+| 24 | Assistant summaries added fixes Rootvex never printed | Summaries were read instead of the raw output | Judge from Rootvex's own `Likely cause` / `Proposed fix` lines |
 | 21 | Gemini review suggested OSPF outputs that IOS does not print | Reviewer model invented output formats | Recorded scenarios are written from real IOS 12.4 formats; live output wins |
 
 Lessons:

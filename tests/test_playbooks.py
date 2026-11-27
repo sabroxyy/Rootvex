@@ -102,3 +102,16 @@ def test_every_playbook_command_is_allowlisted():
 
 def test_no_playbook_for_unrelated_question():
     assert choose(BOOKS, "what is the weather") is None
+
+
+def test_ospf_init_on_a_tunnel_points_to_ipsec():
+    # Live fault #9: a wrong pre-shared key on BR1 showed up on R2 as OSPF INIT on Tunnel0.
+    from rootvex.playbooks.analyzers import ospf_neighbors
+
+    out = (
+        "Neighbor ID     Pri   State           Dead Time   Address         Interface\n"
+        "3.3.3.3           0   INIT/  -        00:00:35    172.16.0.2      Tunnel0\n"
+    )
+    f = ospf_neighbors({("R2", "show ip ospf neighbor"): out})[0]
+    assert "IPsec" in f.cause and "show crypto isakmp sa" in f.fix
+    assert f.proof[0].quote.startswith("3.3.3.3") and "Tunnel0" in f.proof[0].quote

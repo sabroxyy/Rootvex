@@ -177,7 +177,21 @@ def ospf_neighbors(outputs: dict) -> list[Finding]:
         for m in rows:
             state, iface = m[2], m[4]
             line = m[0].strip()
-            if state == "INIT":
+            if state == "INIT" and iface.lower().startswith("tunnel"):
+                # Seen live (fault #9): a wrong IPsec key on a VTI shows up as OSPF INIT.
+                findings.append(
+                    Finding(
+                        cause=f"{device} sees neighbor {m[1]} only in INIT on {iface}: "
+                        "traffic over the tunnel works one way, usually an IPsec "
+                        "problem (pre-shared key, proposal) on the tunnel",
+                        fix="Check IPsec on both tunnel ends: 'show crypto isakmp sa' "
+                        "and 'show crypto ipsec sa'; ask the IPsec VPN playbook",
+                        proof=[Proof(device, "show ip ospf neighbor", line)],
+                        weight=75,
+                        tags=["ipsec", "isakmp", "crypto", "pre-shared", "tunnel"],
+                    )
+                )
+            elif state == "INIT":
                 findings.append(
                     Finding(
                         cause=f"{device} sees neighbor {m[1]} only in INIT on {iface}: "

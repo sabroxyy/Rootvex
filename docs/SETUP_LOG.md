@@ -192,14 +192,20 @@ then plant each fault from `lab/FAULTS.md` on the live lab.
 | 1 | passive-interface Gi1/0 on R1 | R1 Gi1/0 passive | R1 Gi1/0 passive, confidence high | ✅ |
 | 2 | `ip ospf hello-interval 5` on R2 Gi1/0 | timer mismatch 10/40 vs 5/20 | same | ✅ |
 | 5 | `shutdown` on R1 Gi1/0 | administratively down | same, confidence high | ✅ |
-| 3 | `ip ospf 1 area 1` on R2 Gi1/0 | area mismatch 0 vs 1 | run and undone; result to confirm | 🟡 |
+| 3 | `ip ospf 1 area 1` on R2 Gi1/0 | area mismatch 0 vs 1 | area mismatch, quotes `Area 0` / `Area 1` | ✅ |
 | 4 | `ip mtu 1400` on R2 Gi1/0 + `clear ip ospf process` | EXSTART/EXCHANGE, MTU | MTU mismatch found | ✅ |
-| 6 | R1 Gi1/0 shut/no shut ×3 | flapping | flapping found | ✅ |
-| 7 | R2 `neighbor 203.0.113.2 remote-as 65101` | wrong remote AS | wrong remote AS found | ✅ |
+| 6 | R1 Gi1/0 shut/no shut ×3 | flapping | visible evidence was Gi3/0 admin down (unused port); flapping finding not visible | ❓ |
+| 7 | R2 `neighbor 203.0.113.2 remote-as 65101` | wrong remote AS | "peer in wrong AS" found (asked as the log line) | ✅ |
+| 8 | R2 `neighbor 203.0.113.2 shutdown` | admin shut | `Idle (Admin)` found (asked as the summary row) | ✅ |
+| 9 | BR1 wrong pre-shared key | PSK mismatch | asked as OSPF log lines → OSPF playbook → INIT on Tunnel0, fix "check ACLs" | ❌ rerun |
 
 - IOS drops the adjacency at once for a passive interface ("Interface down or
   detached"), not after the 40 s dead timer.
-- Remaining: confirm #3; #8–#11.
+- Lesson: a wrong IPsec key shows on R2 as OSPF INIT on Tunnel0. Code now points
+  INIT-on-a-tunnel to IPsec checks (90 tests pass).
+- Lesson: judge from Rootvex's raw output; an assistant summary added fixes
+  Rootvex never printed (#7, #9).
+- Remaining: confirm #6, rerun #9, do #10, #11.
 
 ## Next
 
@@ -217,7 +223,7 @@ then plant each fault from `lab/FAULTS.md` on the live lab.
 - [x] Build the lab: `uv run python lab/build_gns3_lab.py --rebuild --start`
 - [x] `ssh rootvex@10.99.0.11` from the host; Phase 3 live-lab checks passed
 - [x] Phase 4 playbooks built and proven on recorded faults
-- [ ] Phase 4 live proof: plant the 11 faults in `lab/FAULTS.md`, check each top finding (6/11 done: #1, #2, #4–#7; #3 to confirm)
+- [ ] Phase 4 live proof: plant the 11 faults in `lab/FAULTS.md`, check each top finding (7/11 done: #1–#5, #7, #8; #6 confirm, #9 rerun, #10–#11)
 - [ ] Optional: IOSv + IOSvL2 (CML-Personal) for a managed SW1
 - [ ] NVIDIA Container Toolkit (Phase 9)
 - [ ] Open WebUI (Phase 7, optional)
