@@ -179,6 +179,24 @@ uv run rootvex ask "OSPF neighbor R1 R2 is down" --scenario ospf_passive --steps
 
 then plant each fault from `lab/FAULTS.md` on the live lab.
 
+## 16. Phase 4 live-lab proof (2026-11-27)
+
+- SSH timeout at first: lab not started / `tap-nw` down. Fixed by starting the
+  GNS3 project and `nmcli connection up tap-nw`; health check then OK (R1–R2 and
+  R2–BR1 FULL, real log quotes).
+- Faults planted by hand in the router console (guided by Gemini CLI, which
+  ran `rootvex ask`):
+
+| # | Fault | Expected | Got | Result |
+|---|---|---|---|---|
+| 1 | passive-interface Gi1/0 on R1 | R1 Gi1/0 passive | R1 Gi1/0 passive, confidence high | ✅ |
+| 2 | `ip ospf hello-interval 5` on R2 Gi1/0 | timer mismatch 10/40 vs 5/20 | same | ✅ |
+| 5 | `shutdown` on R1 Gi1/0 | administratively down | same, confidence high | ✅ |
+
+- IOS drops the adjacency at once for a passive interface ("Interface down or
+  detached"), not after the 40 s dead timer.
+- Remaining: #3, #4, #6–#11.
+
 ## Next
 
 - [x] Confirm `docker run hello-world` without sudo
@@ -195,7 +213,7 @@ then plant each fault from `lab/FAULTS.md` on the live lab.
 - [x] Build the lab: `uv run python lab/build_gns3_lab.py --rebuild --start`
 - [x] `ssh rootvex@10.99.0.11` from the host; Phase 3 live-lab checks passed
 - [x] Phase 4 playbooks built and proven on recorded faults
-- [ ] Phase 4 live proof: plant the 11 faults in `lab/FAULTS.md`, check each top finding
+- [ ] Phase 4 live proof: plant the 11 faults in `lab/FAULTS.md`, check each top finding (3/11 done: #1, #2, #5)
 - [ ] Optional: IOSv + IOSvL2 (CML-Personal) for a managed SW1
 - [ ] NVIDIA Container Toolkit (Phase 9)
 - [ ] Open WebUI (Phase 7, optional)

@@ -40,7 +40,7 @@ file names there may change.
 | 1 | Skeleton | ✅ Done — config, audit log, CLI, tests, CI |
 | 2 | Agent loop | ✅ Done — LangGraph agent, limits, structured report |
 | 3 | Read-only device tools | ✅ Done — tested on recorded outputs and on the live GNS3 lab |
-| 4 | Troubleshooting playbooks | 🟡 **Built** — 5 playbooks, quote-checked evidence, 11 recorded faults found; planting the faults in the live lab is next |
+| 4 | Troubleshooting playbooks | 🟡 **Built** — 5 playbooks, quote-checked evidence, 11 recorded faults found; **live lab: 3/11 proven** (passive, timers, shutdown) |
 | 5 | Knowledge base (RAG) | ⬜ Planned |
 | 6 | Evaluation | ⬜ Planned |
 | 7 | API and web UI | 🟡 Prototype built early: local chat page, login, live steps, Approve/Reject recorded, SQLite |
@@ -562,7 +562,14 @@ uv run rootvex ask "BGP peer on R1 is down" --scenario bgp_wrong_as
 Then on the live lab, follow `lab/FAULTS.md`: plant, ask, check, undo.
 
 **Done when:** each playbook finds its planted fault **in the live lab** and
-cites the proof. Recorded: ✅ 11/11. Live: ⬜ waiting for the lab session.
+cites the proof. Recorded: ✅ 11/11. Live: 🟡 3/11 (27 Nov 2026):
+
+| # | Fault | Live result |
+|---|---|---|
+| 1 | `ospf_passive` | ✅ R1 Gi1/0 passive OSPF interface, confidence high |
+| 2 | `ospf_timers` | ✅ hello/dead mismatch on R1/R2 Gi1/0, 10/40 vs 5/20 |
+| 5 | `interface_shutdown` | ✅ interface administratively down, confidence high |
+| 3, 4, 6–11 | area, MTU, flap, BGP ×2, IPsec ×2, website ×2 | ⬜ to do |
 
 **Add a playbook:** copy a YAML in `config/playbooks/`, set `keywords`, ordered
 `checks` (allowlisted commands only), regex `signatures` (`{1}` = first group,

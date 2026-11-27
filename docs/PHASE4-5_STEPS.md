@@ -21,7 +21,7 @@ Rules for everyone working on this (Claude Code, Gemini CLI, you): see `GEMINI.m
 | Model re-asking a playbook command reuses the output | ✅ Done |
 | 11 recorded faults + 1 healthy case pass (`--scenario`) | ✅ Done — 89 tests pass |
 | Recorded run on the workstation (`--scenario ospf_passive`) | ✅ Correct answer, confidence high |
-| **Live-lab proof of the 11 faults** | ⬜ **Next** — blocked today by SSH timeout to the routers |
+| **Live-lab proof of the 11 faults** | 🟡 **3/11** — #1 passive, #2 timers, #5 shutdown ✅; next #3, #4, #6–#11 |
 | Merge `phase4` into `main` | ⬜ After live proof |
 
 ### Steps to finish Phase 4
@@ -196,7 +196,7 @@ an unknown topic gives "no source found", not invention.
 
 ## Order of work
 
-1. Phase 4 Steps 1–3 (lab reachable) — **today's blocker**
+1. Phase 4 Steps 1–3 (lab reachable) — ✅ done 27 Nov
 2. Phase 4 Step 4 for faults #1–#11
 3. Phase 4 Steps 5–7, merge
 4. Phase 5 Steps 1–11
