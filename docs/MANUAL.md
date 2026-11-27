@@ -77,7 +77,7 @@ file names there may change.
   R2 area 1) with high confidence.
 - Read-only device tools with a deny-by-default Cisco IOS allowlist, a lab-only
   inventory check, secret redaction, and untrusted-output wrapping.
-- 97 automated tests pass (`uv run pytest`), no devices or model needed.
+- 99 automated tests pass (`uv run pytest`), no devices or model needed.
 - The whole GNS3 lab is described as code (`lab/`) and builds with one command.
 - Health checks for the workstation: GPU (`lab/check_gpu.sh`) and GNS3
   (`lab/check_gns3_env.sh`).
@@ -577,7 +577,7 @@ cites the proof. Recorded: ✅ 11/11. Live: 🟡 10/11 (27 Nov 2026):
 | 8 | `bgp_admin_shut` | ✅ `Idle (Admin)`: neighbor shut down |
 | 9 | `ipsec_psk` | ✅ phase 1 stuck in `MM_NO_STATE` on BR1 and R2 (third run; earlier: wrong question, then fault not active) |
 | 10 | `website_no_default` | ✅ R1 has no default route, quote `Gateway of last resort is not set`; model agreed |
-| 11 | `website_acl` | ⬜ to do |
+| 11 | `website_acl` | 🟡 run 1: ACL found (4 hits) but ranked below a false "no default route" on R2; fixed, rerun |
 
 **Add a playbook:** copy a YAML in `config/playbooks/`, set `keywords`, ordered
 `checks` (allowlisted commands only), regex `signatures` (`{1}` = first group,
@@ -765,6 +765,7 @@ uv sync && uv run pytest
 | 24 | Assistant summaries added fixes Rootvex never printed | Summaries were read instead of the raw output | Judge from Rootvex's own `Likely cause` / `Proposed fix` lines |
 | 25 | Flapping missed, model blamed spare port Gi3/0 | Needed 3 downs in the whole log; "flapping" alone counted as the model agreeing | 2+ downs in 15 min; model must name the same interface to agree; spare ports ignored |
 | 26 | IPsec test showed no fault, model invented "SA not established" | Tunnel was still up (old SA); checks found only healthy output | Healthy results are reported (`OK: …`); "No fault found by the code checks" overrules an invented fault; runbook: clear both ends and send traffic |
+| 27 | "No default route" blamed on R2, ACL ranked second | R2 learns the web prefix by BGP and has no default route by design; ACL deny had a fixed low rank | No default route is a cause only without BGP routes; deny on web ports with hits ranks high; model must name the ACL to agree |
 | 21 | Gemini review suggested OSPF outputs that IOS does not print | Reviewer model invented output formats | Recorded scenarios are written from real IOS 12.4 formats; live output wins |
 
 Lessons:

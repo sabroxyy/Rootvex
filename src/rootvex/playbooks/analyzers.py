@@ -430,18 +430,35 @@ def ipsec_state(outputs: dict) -> list[Finding]:
     return findings
 
 
+_BGP_ROUTE = re.compile(r"^B[ *]", re.M)
+
+
 def route_default(outputs: dict) -> list[Finding]:
-    """No default route: traffic to the internet has nowhere to go."""
+    """No default route. A cause only when the router has no BGP routes: a router that
+    learns the internet's prefixes by BGP (R2 in the lab) needs no default route."""
     findings = []
     for device, text in _outputs_for(outputs, "show ip route").items():
-        if "Gateway of last resort is not set" in text:
+        if "Gateway of last resort is not set" not in text:
+            continue
+        proof = [Proof(device, "show ip route", "Gateway of last resort is not set")]
+        if _BGP_ROUTE.search(text):
+            findings.append(
+                Finding(
+                    f"{device} has no default route, but it learns routes by BGP; that is "
+                    "normal if the destination is in its BGP routes",
+                    proof=proof,
+                    weight=20,
+                    symptom=True,
+                )
+            )
+        else:
             findings.append(
                 Finding(
                     f"{device} has no default route (gateway of last resort is not set), so "
                     "traffic to internet addresses is dropped",
                     f"On {device}: add or restore the default route (ip route 0.0.0.0 0.0.0.0 "
                     "<next hop>) or the routing protocol that provides it",
-                    [Proof(device, "show ip route", "Gateway of last resort is not set")],
+                    proof,
                     85,
                     tags=["default route", "gateway of last resort"],
                 )
@@ -450,22 +467,31 @@ def route_default(outputs: dict) -> list[Finding]:
 
 
 _ACL_DENY = re.compile(r"^\s*(\d+ )?deny (.+?) \((\d+) match(?:es)?\)\s*$", re.M)
+_ACL_HEAD = re.compile(r"^(?:Standard|Extended) IP access list (\S+)", re.M)
+_WEB_PORT = re.compile(r"\beq (www|80|443|https?)\b")
 
 
 def acl_denies(outputs: dict) -> list[Finding]:
-    """ACL deny entries with hits: something is being blocked."""
+    """ACL deny entries with hits. A deny on web ports with hits is a strong cause for a
+    website problem; the model must name the ACL to count as agreeing."""
     findings = []
     for device, text in _outputs_for(outputs, "show ip access-lists").items():
         for m in _ACL_DENY.finditer(text):
+            heads = [h for h in _ACL_HEAD.finditer(text) if h.start() < m.start()]
+            acl = heads[-1][1] if heads else ""
+            web = bool(_WEB_PORT.search(m[2]))
+            name = f"access list {acl}" if acl else "an access list"
             findings.append(
                 Finding(
-                    f"{device}: an access-list deny entry has {m[3]} hits ({m[2].strip()}): "
-                    "it may be blocking this traffic",
-                    "Check whether this deny entry matches the user's traffic; if so, move or "
-                    "change it",
+                    f"{device}: {name} denies {m[2].strip()} and has {m[3]} hits"
+                    + (": web traffic is being blocked" if web else ": it may block this traffic"),
+                    f"On {device}: remove or change that deny entry"
+                    + (f" in {acl}" if acl else "")
+                    + ", or remove the access-group from the interface",
                     [Proof(device, "show ip access-lists", m[0].strip())],
-                    60,
-                    tags=["access-list", "acl", "deny"],
+                    88 if web else 60,
+                    tags=["access-list", "access list", "acl", "deny"],
+                    must=[acl.lower()] if acl else [],
                 )
             )
     return findings

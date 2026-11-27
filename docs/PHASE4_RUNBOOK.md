@@ -191,14 +191,14 @@ and run the health check in between.
 | Expect | Playbook *User cannot reach a website*; `R1 has no default route`; quote `Gateway of last resort is not set` |
 | Undo (R1) | `configure terminal` / `ip route 0.0.0.0 0.0.0.0 10.0.12.2` / `end` |
 
-### #11 ACL blocking web traffic — ⬜
+### #11 ACL blocking web traffic — 🟡 rerun after fix (27 Nov: ACL found but ranked below "no default route")
 
 | | |
 |---|---|
 | Plant (R2) | `configure terminal` / `ip access-list extended BLOCK_WEB` / `deny tcp any any eq www` / `permit ip any any` / `exit` / `interface GigabitEthernet1/0` / `ip access-group BLOCK_WEB in` / `end` |
 | Traffic | PC1 console: `curl http://192.0.2.80` (a few times; it should fail) |
 | Ask | `user behind R2 cannot browse the web site` |
-| Expect | `R2: an access-list deny entry has N hits (tcp any any eq www)` |
+| Expect | `R2: access list BLOCK_WEB denies tcp any any eq www and has N hits: web traffic is being blocked` as the likely cause. "No default route" on R2 is normal (BGP routes) and only appears as a note. |
 | Undo (R2) | `configure terminal` / `interface GigabitEthernet1/0` / `no ip access-group BLOCK_WEB in` / `exit` / `no ip access-list extended BLOCK_WEB` / `end` |
 
 ---
@@ -250,4 +250,4 @@ After each fault, add a row to `docs/SETUP_LOG.md` section 16:
 | 8 | BGP shut down | ✅ 27 Nov |
 | 9 | IPsec key | ✅ 27 Nov |
 | 10 | No default route | ✅ 27 Nov |
-| 11 | ACL blocks web | ⬜ |
+| 11 | ACL blocks web | 🟡 rerun after fix |

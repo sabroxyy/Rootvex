@@ -210,11 +210,11 @@ then plant each fault from `lab/FAULTS.md` on the live lab.
   nothing was found and the model chased spare port Gi3/0. Fixed: flapping = 2+
   downs in the last 15 minutes of the log (older boot/test events ignored); the
   interface playbook tells the model to ignore `unassigned` ports. R1's real log
-  is now the recorded scenario. 97 tests pass.
+  is now the recorded scenario. 99 tests pass.
 - #6 rerun on the new code: `R1 GigabitEthernet1/0 is flapping: line protocol went
   down 2 times in the last 15 minutes` ✅. The model's fix ("assign an IP") was
   still kept because it said "flapping"; now a model answer only agrees if it
-  also names the same interface. 97 tests pass.
+  also names the same interface. 99 tests pass.
 - The workstation was still on an old commit (`27daef2`) for the first reruns:
   always `git pull` and check `git log --oneline -1` before a test session.
 - #9 second run: playbook *IPsec VPN down* chosen correctly, but the fault was
@@ -223,11 +223,15 @@ then plant each fault from `lab/FAULTS.md` on the live lab.
   report healthy results (`OK: …`); when code finds no cause but proves health,
   the report says "No fault found by the code checks" and the model's claim goes
   to Model's view. Recorded IPsec files now use the real 12.4 layout (no `slot`
-  column). 97 tests pass.
+  column). 99 tests pass.
 - #9 run 3 ✅. IOS lists the old `QM_IDLE` SA next to the failing one during a
-  rekey; that stale row is no longer reported as "up". 97 tests pass.
+  rekey; that stale row is no longer reported as "up". 99 tests pass.
+| 11 | R2 ACL `BLOCK_WEB` deny www, applied in on Gi1/0 | ACL deny with hits | run 1: ACL found (4 hits) but top cause was "R2 has no default route" (false: R2 uses BGP routes) | 🟡 rerun |
 
-- Remaining: #11.
+- #11 fix: "no default route" is only a cause when the router has no BGP routes;
+  a deny on web ports with hits ranks high and the model must name the ACL to
+  agree. 99 tests pass.
+- Remaining: rerun #11.
 
 ## Next
 

@@ -34,7 +34,13 @@ CASES = [
         "website_unreachable",
         "default",
     ),
-    ("website_acl", "user behind R1 cannot browse the web site", "website_unreachable", "deny"),
+    ("website_acl", "user behind R1 cannot browse the web site", "website_unreachable", "denies"),
+    (
+        "website_acl_bgp",
+        "user behind R2 cannot browse the web site",
+        "website_unreachable",
+        "BLOCK",
+    ),
 ]
 
 

@@ -462,7 +462,7 @@ Changes from section 3.4:
   use the model's steps. Devices = those named in the question, else all.
 - **Proof:** 11 recorded faults in IOS 12.4 format + 1 healthy case
   (`tests/fixtures/scenarios/`), each found with every proof line verified;
-  `lab/FAULTS.md` gives the same faults to plant in GNS3. 97 tests pass.
+  `lab/FAULTS.md` gives the same faults to plant in GNS3. 99 tests pass.
 - **Not done in Phase 4:** live-lab proof (needs the workstation), DNS and
   PC-gateway checks for "can't reach website" (hosts are not managed devices),
   err-disable/duplex faults (SW1 is unmanaged).

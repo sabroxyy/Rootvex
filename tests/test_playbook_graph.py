@@ -233,3 +233,30 @@ def test_healthy_ipsec_overrules_an_invented_fault():
     assert r.proposed_fix == ""
     assert r.evidence and all(e.verified for e in r.evidence)
     assert any(c.startswith("OK: ") for c in r.code_findings)
+
+
+def test_acl_beats_wrong_default_route_answer_on_a_bgp_router():
+    # Live 27 Nov (#11): R2 learns 192.0.2.0/24 by BGP and has no default route by
+    # design; the model blamed the missing default route while ACL BLOCK_WEB had hits.
+    tools, names = tools_for("website_acl_bgp")
+    wrong = (
+        '{"likely_cause": "R2 lacks a default route, causing packets to be dropped before '
+        'reaching the ACL that blocks outbound HTTP traffic", "confidence": "high"}'
+    )
+    llm = ScriptedChatModel(
+        script=[AIMessage(content="plan"), AIMessage(content="done"), AIMessage(content=wrong)],
+        calls=[],
+    )
+    state = run_agent(
+        "user behind R2 cannot browse the web site",
+        llm,
+        tools,
+        AgentSettings(),
+        names,
+        playbooks=load_playbooks(playbook_dir()),
+    )
+    r = state["report"]
+    assert r.likely_cause.startswith("R2: access list BLOCK_WEB denies tcp any any eq www")
+    assert r.model_view.startswith("R2 lacks a default route")
+    assert "BLOCK_WEB" in r.proposed_fix
+    assert not any("traffic to internet addresses is dropped" in c for c in r.code_findings)
