@@ -209,14 +209,21 @@ then plant each fault from `lab/FAULTS.md` on the live lab.
   nothing was found and the model chased spare port Gi3/0. Fixed: flapping = 2+
   downs in the last 15 minutes of the log (older boot/test events ignored); the
   interface playbook tells the model to ignore `unassigned` ports. R1's real log
-  is now the recorded scenario. 95 tests pass.
+  is now the recorded scenario. 96 tests pass.
 - #6 rerun on the new code: `R1 GigabitEthernet1/0 is flapping: line protocol went
   down 2 times in the last 15 minutes` ✅. The model's fix ("assign an IP") was
   still kept because it said "flapping"; now a model answer only agrees if it
-  also names the same interface. 95 tests pass.
+  also names the same interface. 96 tests pass.
 - The workstation was still on an old commit (`27daef2`) for the first reruns:
   always `git pull` and check `git log --oneline -1` before a test session.
-- Remaining: rerun #9, do #10, #11.
+- #9 second run: playbook *IPsec VPN down* chosen correctly, but the fault was
+  not active (both ends `QM_IDLE`, 1910/1903 packets encrypted/decrypted). Code
+  found nothing; the model invented "IPsec SA not established". Fixed: analyzers
+  report healthy results (`OK: …`); when code finds no cause but proves health,
+  the report says "No fault found by the code checks" and the model's claim goes
+  to Model's view. Recorded IPsec files now use the real 12.4 layout (no `slot`
+  column). 96 tests pass.
+- Remaining: rerun #9 (clear crypto session on both ends + traffic), do #10, #11.
 
 ## Next
 

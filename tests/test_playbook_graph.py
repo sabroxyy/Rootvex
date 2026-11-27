@@ -203,3 +203,33 @@ def test_model_naming_the_same_interface_agrees():
     )
     assert state["report"].likely_cause == "Gi1/0 on R1 is flapping"
     assert state["report"].model_view == ""
+
+
+def test_healthy_ipsec_overrules_an_invented_fault():
+    # Live 27 Nov: tunnel up (QM_IDLE, 1910/1903 packets) but the model said
+    # "IPsec SA not established". Code proof of health must win.
+    tools, names = tools_for("ipsec_healthy")
+    invented = (
+        '{"likely_cause": "The IPsec tunnel is down because the IPsec SA is not '
+        'established", "proposed_fix": "check crypto maps", "confidence": "medium"}'
+    )
+    llm = ScriptedChatModel(
+        script=[AIMessage(content="plan"), AIMessage(content="done"), AIMessage(content=invented)],
+        calls=[],
+    )
+    state = run_agent(
+        "IPsec VPN tunnel between R2 and BR1 is down",
+        llm,
+        tools,
+        AgentSettings(),
+        names,
+        playbooks=load_playbooks(playbook_dir()),
+    )
+    r = state["report"]
+    assert r.playbook == "IPsec VPN down"
+    assert r.likely_cause.startswith("No fault found by the code checks")
+    assert "QM_IDLE" in r.likely_cause and "both ways" in r.likely_cause
+    assert r.model_view.startswith("The IPsec tunnel is down")
+    assert r.proposed_fix == ""
+    assert r.evidence and all(e.verified for e in r.evidence)
+    assert any(c.startswith("OK: ") for c in r.code_findings)

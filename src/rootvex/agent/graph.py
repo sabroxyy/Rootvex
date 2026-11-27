@@ -151,7 +151,7 @@ def build_graph(
             listed = (
                 "\n".join(
                     f"- {f.cause}"
-                    + (" (symptom)" if f.symptom else "")
+                    + (" (healthy)" if f.ok else " (symptom)" if f.symptom else "")
                     + "".join(f'\n    {p.device}: "{p.quote}"' for p in f.proof)
                     for f in findings
                 )

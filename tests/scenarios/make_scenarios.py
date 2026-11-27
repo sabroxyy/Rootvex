@@ -128,8 +128,8 @@ SCENARIOS = {
     "ipsec_psk": {
         "R1": {
             "show crypto isakmp sa": "IPv4 Crypto ISAKMP SA\n"
-            "dst             src             state          conn-id slot status\n"
-            "10.0.13.3       10.0.13.1       MM_KEY_EXCH          0    0 ACTIVE\n",
+            "dst             src             state          conn-id status\n"
+            "10.0.13.3       10.0.13.1       MM_KEY_EXCH          0 ACTIVE\n",
             "show crypto ipsec sa": "interface: GigabitEthernet2/0\n"
             "    Crypto map tag: VPN, local addr 10.0.13.1\n"
             "    #pkts encaps: 0, #pkts encrypt: 0, #pkts digest: 0\n"
@@ -143,8 +143,8 @@ SCENARIOS = {
     "ipsec_oneway": {
         "R1": {
             "show crypto isakmp sa": "IPv4 Crypto ISAKMP SA\n"
-            "dst             src             state          conn-id slot status\n"
-            "10.0.13.3       10.0.13.1       QM_IDLE           1001    0 ACTIVE\n",
+            "dst             src             state          conn-id status\n"
+            "10.0.13.3       10.0.13.1       QM_IDLE           1001 ACTIVE\n",
             "show crypto ipsec sa": "interface: GigabitEthernet2/0\n"
             "    Crypto map tag: VPN, local addr 10.0.13.1\n"
             "    #pkts encaps: 25, #pkts encrypt: 25, #pkts digest: 25\n"

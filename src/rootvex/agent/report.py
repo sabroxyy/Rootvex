@@ -122,7 +122,7 @@ def add_code_findings(report: Report, playbook: str, findings: list) -> None:
     """
     report.playbook = playbook
     causes = [f for f in findings if not f.symptom]
-    report.code_findings = [f.cause for f in findings]
+    report.code_findings = [("OK: " if getattr(f, "ok", False) else "") + f.cause for f in findings]
     have = {(_squash(e.device), _squash(e.quote)) for e in report.evidence}
     extra = []
     for f in causes[:3] or findings[:2]:
@@ -132,6 +132,30 @@ def add_code_findings(report: Report, playbook: str, findings: list) -> None:
                     Evidence(device=p.device, command=p.command, finding=f.cause, quote=p.quote)
                 )
                 have.add((_squash(p.device), _squash(p.quote)))
+    healthy = [f for f in findings if getattr(f, "ok", False)]
+    if not causes and healthy:
+        # Code proved the checked parts are working: do not let the model claim a fault.
+        for f in healthy[:4]:
+            for p in f.proof:
+                if (_squash(p.device), _squash(p.quote)) not in have:
+                    extra.append(
+                        Evidence(device=p.device, command=p.command, finding=f.cause, quote=p.quote)
+                    )
+                    have.add((_squash(p.device), _squash(p.quote)))
+        if report.likely_cause.strip():
+            report.model_view = report.likely_cause
+        report.likely_cause = "No fault found by the code checks: " + "; ".join(
+            f.cause for f in healthy[:4]
+        )
+        report.proposed_fix = ""
+        report.confidence = "medium"
+        report.evidence = extra
+        report.next_steps = [
+            "If you planted a fault, it may not be active yet (e.g. clear the session and "
+            "send traffic), then ask again.",
+            "If users still see a problem, it is outside what these checks cover.",
+        ]
+        return
     if not causes:
         report.evidence += extra
         return

@@ -34,6 +34,9 @@ class Finding:
     tags: list[str] = field(default_factory=list)
     # If set, the model must also name one of these (e.g. the interface) to agree.
     must: list[str] = field(default_factory=list)
+    # True: a healthy result ("tunnel up, traffic both ways"), shown so the model
+    # cannot invent a fault the outputs disprove. Always also a symptom (not a cause).
+    ok: bool = False
 
 
 @dataclass

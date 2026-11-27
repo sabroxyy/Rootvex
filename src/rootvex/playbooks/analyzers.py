@@ -373,7 +373,17 @@ def ipsec_state(outputs: dict) -> list[Finding]:
                 )
             )
         for m in rows:
-            if m[3] != "QM_IDLE":
+            if m[3] == "QM_IDLE":
+                findings.append(
+                    Finding(
+                        f"{device}: IKE phase 1 with {m[1]} is up (QM_IDLE)",
+                        proof=[Proof(device, "show crypto isakmp sa", m[0].strip())],
+                        weight=5,
+                        symptom=True,
+                        ok=True,
+                    )
+                )
+            else:
                 findings.append(
                     Finding(
                         f"{device}: IKE phase 1 with {m[1]} is stuck in {m[3]}: the peer does "
@@ -389,6 +399,17 @@ def ipsec_state(outputs: dict) -> list[Finding]:
         dec = _line(text, r"#pkts decaps: (\d+)")
         e = re.search(r"#pkts encaps: (\d+)", text)
         d = re.search(r"#pkts decaps: (\d+)", text)
+        if e and d and int(e[1]) > 0 and int(d[1]) > 0:
+            findings.append(
+                Finding(
+                    f"{device}: IPsec carries traffic both ways ({e[1]} packets encrypted, "
+                    f"{d[1]} decrypted)",
+                    proof=[Proof(device, "show crypto ipsec sa", dec)],
+                    weight=5,
+                    symptom=True,
+                    ok=True,
+                )
+            )
         if e and d and int(e[1]) > 0 and int(d[1]) == 0:
             findings.append(
                 Finding(

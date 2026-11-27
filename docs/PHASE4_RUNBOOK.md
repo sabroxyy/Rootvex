@@ -170,15 +170,17 @@ and run the health check in between.
 | Expect | `BGP neighbor 203.0.113.2 is administratively shut down`; quote the `Idle (Admin)` row |
 | Undo (R2) | `configure terminal` / `router bgp 65001` / `no neighbor 203.0.113.2 shutdown` / `end` |
 
-### #9 IPsec pre-shared key mismatch — ❌ rerun (27 Nov run used a log line as the question, so the OSPF playbook ran)
+### #9 IPsec pre-shared key mismatch — ❌ rerun (27 Nov: asked as log lines; second run: fault not active, tunnel still up)
 
 | | |
 |---|---|
-| Plant (BR1) | `configure terminal` / `crypto isakmp key WRONG-KEY address 203.0.113.1` / `end`, then `clear crypto session` |
-| Wait | ~30 s; from the PC1 console `ping 10.20.20.10` helps trigger IKE |
+| Plant (BR1) | `configure terminal` / `crypto isakmp key WRONG-KEY address 203.0.113.1` / `end` |
+| Make it bite | The old tunnel stays up until it is torn down. On **both** R2 and BR1: `clear crypto session`. Then from the PC1 console: `ping 10.20.20.10` |
+| Check it is active (BR1 console) | `show crypto isakmp sa` must **not** show `QM_IDLE` (expect `MM_NO_STATE` / `MM_KEY_EXCH`, or no row); `show logging \| include IKMP` may show `IKMP_BAD_MESSAGE` |
 | Ask | `IPsec VPN tunnel between R2 and BR1 is down` |
-| Expect | Playbook *IPsec VPN down*; `pre-shared key mismatch` (log `IKMP_BAD_MESSAGE`) or phase 1 stuck in `MM_…` |
-| Undo (BR1) | `configure terminal` / `crypto isakmp key <real key> address 203.0.113.1` / `end`, then `clear crypto session`. The real key is `LAB_VPN_PSK` in `.env` — read it there, do not paste it in chat. |
+| Expect | Playbook *IPsec VPN down*; phase 1 stuck in `MM_…` and/or `pre-shared key mismatch` |
+| If the tunnel is still up | Rootvex now says `No fault found by the code checks: … QM_IDLE … traffic both ways` — the fault is not active yet; clear again and send traffic |
+| Undo (BR1) | `configure terminal` / `crypto isakmp key <real key> address 203.0.113.1` / `end`, then `clear crypto session` on both. The real key is `LAB_VPN_PSK` in `.env` — read it there, do not paste it in chat. |
 
 ### #10 No default route ("can't reach website") — ⬜
 
