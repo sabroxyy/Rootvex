@@ -143,3 +143,12 @@ def test_flap_proof_is_the_newest_matching_line():
 
     f = interface_flaps(outputs)[0]
     assert f.proof[0].quote.startswith("*Nov 27 17:22:36.595")
+
+
+def test_stale_qm_idle_row_is_not_reported_as_up():
+    # Live 27 Nov (#9): during a failed rekey IOS lists the old QM_IDLE SA next to
+    # the new MM_NO_STATE one. Report the failure, not "up".
+    book, outputs = run_scenario("ipsec_rekey_fail", "IPsec VPN tunnel between R2 and BR1 is down")
+    findings = analyze(book, outputs)
+    assert "MM_NO_STATE" in findings[0].cause and "203.0.113.1 -> 198.51.100.2" in findings[0].cause
+    assert not any(f.ok for f in findings)

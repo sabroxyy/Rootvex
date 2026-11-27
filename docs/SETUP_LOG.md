@@ -197,7 +197,7 @@ then plant each fault from `lab/FAULTS.md` on the live lab.
 | 6 | R1 Gi1/0 shut/no shut ×2–3 | flapping | first run: missed (needed 3 downs); after fix: Gi1/0 flapping, 2 downs in 15 min | ✅ |
 | 7 | R2 `neighbor 203.0.113.2 remote-as 65101` | wrong remote AS | "peer in wrong AS" found (asked as the log line) | ✅ |
 | 8 | R2 `neighbor 203.0.113.2 shutdown` | admin shut | `Idle (Admin)` found (asked as the summary row) | ✅ |
-| 9 | BR1 wrong pre-shared key | PSK mismatch | asked as OSPF log lines → OSPF playbook → INIT on Tunnel0, fix "check ACLs" | ❌ rerun |
+| 9 | BR1 wrong pre-shared key | PSK mismatch | run 1: asked as OSPF log lines → wrong playbook; run 2: fault not active; run 3: phase 1 `MM_NO_STATE` on BR1 and R2, model's guess moved to Model's view | ✅ |
 
 - IOS drops the adjacency at once for a passive interface ("Interface down or
   detached"), not after the 40 s dead timer.
@@ -209,11 +209,11 @@ then plant each fault from `lab/FAULTS.md` on the live lab.
   nothing was found and the model chased spare port Gi3/0. Fixed: flapping = 2+
   downs in the last 15 minutes of the log (older boot/test events ignored); the
   interface playbook tells the model to ignore `unassigned` ports. R1's real log
-  is now the recorded scenario. 96 tests pass.
+  is now the recorded scenario. 97 tests pass.
 - #6 rerun on the new code: `R1 GigabitEthernet1/0 is flapping: line protocol went
   down 2 times in the last 15 minutes` ✅. The model's fix ("assign an IP") was
   still kept because it said "flapping"; now a model answer only agrees if it
-  also names the same interface. 96 tests pass.
+  also names the same interface. 97 tests pass.
 - The workstation was still on an old commit (`27daef2`) for the first reruns:
   always `git pull` and check `git log --oneline -1` before a test session.
 - #9 second run: playbook *IPsec VPN down* chosen correctly, but the fault was
@@ -222,8 +222,10 @@ then plant each fault from `lab/FAULTS.md` on the live lab.
   report healthy results (`OK: …`); when code finds no cause but proves health,
   the report says "No fault found by the code checks" and the model's claim goes
   to Model's view. Recorded IPsec files now use the real 12.4 layout (no `slot`
-  column). 96 tests pass.
-- Remaining: rerun #9 (clear crypto session on both ends + traffic), do #10, #11.
+  column). 97 tests pass.
+- #9 run 3 ✅. IOS lists the old `QM_IDLE` SA next to the failing one during a
+  rekey; that stale row is no longer reported as "up". 97 tests pass.
+- Remaining: #10, #11.
 
 ## Next
 
@@ -241,7 +243,7 @@ then plant each fault from `lab/FAULTS.md` on the live lab.
 - [x] Build the lab: `uv run python lab/build_gns3_lab.py --rebuild --start`
 - [x] `ssh rootvex@10.99.0.11` from the host; Phase 3 live-lab checks passed
 - [x] Phase 4 playbooks built and proven on recorded faults
-- [ ] Phase 4 live proof: plant the 11 faults in `lab/FAULTS.md`, check each top finding (8/11 done: #1–#8; #9 rerun, #10–#11)
+- [ ] Phase 4 live proof: plant the 11 faults in `lab/FAULTS.md`, check each top finding (9/11 done: #1–#9; #10–#11 to do)
 - [ ] Optional: IOSv + IOSvL2 (CML-Personal) for a managed SW1
 - [ ] NVIDIA Container Toolkit (Phase 9)
 - [ ] Open WebUI (Phase 7, optional)

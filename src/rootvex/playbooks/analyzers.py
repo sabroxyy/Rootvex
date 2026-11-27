@@ -372,11 +372,15 @@ def ipsec_state(outputs: dict) -> list[Finding]:
                     tags=["phase 1", "isakmp", "crypto map", "never start"],
                 )
             )
+        stuck = [m for m in rows if m[3] != "QM_IDLE"]
         for m in rows:
+            sa = f"IKE SA {m[2]} -> {m[1]}"  # src -> dst, as IOS lists them
             if m[3] == "QM_IDLE":
+                if stuck:
+                    continue  # an old SA still listed while a new one fails: not "up"
                 findings.append(
                     Finding(
-                        f"{device}: IKE phase 1 with {m[1]} is up (QM_IDLE)",
+                        f"{device}: {sa} is up (QM_IDLE)",
                         proof=[Proof(device, "show crypto isakmp sa", m[0].strip())],
                         weight=5,
                         symptom=True,
@@ -386,8 +390,8 @@ def ipsec_state(outputs: dict) -> list[Finding]:
             else:
                 findings.append(
                     Finding(
-                        f"{device}: IKE phase 1 with {m[1]} is stuck in {m[3]}: the peer does "
-                        "not answer or rejects the proposal / key",
+                        f"{device}: {sa} is stuck in {m[3]}: phase 1 fails (pre-shared key "
+                        "or proposal mismatch, or the peer does not answer)",
                         "Compare isakmp policy and pre-shared key on both ends",
                         [Proof(device, "show crypto isakmp sa", m[0].strip())],
                         60,

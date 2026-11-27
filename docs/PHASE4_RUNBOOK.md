@@ -1,7 +1,7 @@
 # Rootvex Phase 4 Runbook — proving the playbooks on the live lab
 
-**Version 1 — 27 November 2026.** Branch `phase4`. Progress: **8 of 11 faults proven live**
-(#1–#8). #9 to rerun, #10–#11 to do.
+**Version 1 — 27 November 2026.** Branch `phase4`. Progress: **9 of 11 faults proven live**
+(#1–#9). #10–#11 to do.
 
 This runbook is the exact procedure for planting each lab fault, asking Rootvex,
 checking the answer, and putting the lab back. **Lab only.** Rootvex never changes
@@ -170,7 +170,7 @@ and run the health check in between.
 | Expect | `BGP neighbor 203.0.113.2 is administratively shut down`; quote the `Idle (Admin)` row |
 | Undo (R2) | `configure terminal` / `router bgp 65001` / `no neighbor 203.0.113.2 shutdown` / `end` |
 
-### #9 IPsec pre-shared key mismatch — ❌ rerun (27 Nov: asked as log lines; second run: fault not active, tunnel still up)
+### #9 IPsec pre-shared key mismatch — ✅ proven 27 Nov (third run)
 
 | | |
 |---|---|
@@ -248,6 +248,6 @@ After each fault, add a row to `docs/SETUP_LOG.md` section 16:
 | 6 | Interface flapping | ✅ 27 Nov |
 | 7 | BGP wrong AS | ✅ 27 Nov |
 | 8 | BGP shut down | ✅ 27 Nov |
-| 9 | IPsec key | ❌ rerun with the exact question |
+| 9 | IPsec key | ✅ 27 Nov |
 | 10 | No default route | ⬜ |
 | 11 | ACL blocks web | ⬜ |
