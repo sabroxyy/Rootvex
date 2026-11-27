@@ -198,6 +198,7 @@ then plant each fault from `lab/FAULTS.md` on the live lab.
 | 7 | R2 `neighbor 203.0.113.2 remote-as 65101` | wrong remote AS | "peer in wrong AS" found (asked as the log line) | ✅ |
 | 8 | R2 `neighbor 203.0.113.2 shutdown` | admin shut | `Idle (Admin)` found (asked as the summary row) | ✅ |
 | 9 | BR1 wrong pre-shared key | PSK mismatch | run 1: asked as OSPF log lines → wrong playbook; run 2: fault not active; run 3: phase 1 `MM_NO_STATE` on BR1 and R2, model's guess moved to Model's view | ✅ |
+| 10 | R1 `no ip route 0.0.0.0 0.0.0.0 10.0.12.2` | no default route | same, quote `Gateway of last resort is not set`, model agreed, confidence high | ✅ |
 
 - IOS drops the adjacency at once for a passive interface ("Interface down or
   detached"), not after the 40 s dead timer.
@@ -225,7 +226,6 @@ then plant each fault from `lab/FAULTS.md` on the live lab.
   column). 97 tests pass.
 - #9 run 3 ✅. IOS lists the old `QM_IDLE` SA next to the failing one during a
   rekey; that stale row is no longer reported as "up". 97 tests pass.
-| 10 | R1 `no ip route 0.0.0.0 0.0.0.0 10.0.12.2` | no default route | same, quote `Gateway of last resort is not set`, model agreed, confidence high | ✅ |
 
 - Remaining: #11.
 
