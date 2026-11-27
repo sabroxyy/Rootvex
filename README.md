@@ -88,5 +88,6 @@ Apache License 2.0 — see [`LICENSE`](LICENSE).
 | [`docs/PROJECT_PROMPT.md`](docs/PROJECT_PROMPT.md) — build brief for Claude Code | — |
 | [`lab/README.md`](lab/README.md) — GNS3 lab as code | — |
 | [`docs/rootvex-lab-3d.html`](docs/rootvex-lab-3d.html) — interactive 3D view of the lab | — |
+| [`docs/rootvex-agent-3d.html`](docs/rootvex-agent-3d.html) — interactive 3D view of the agent flow | — |
 
 PDFs are generated from the Markdown: `uv run scripts/build_pdfs.py`.
