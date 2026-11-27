@@ -1,7 +1,7 @@
 # Rootvex Phase 4 Runbook — proving the playbooks on the live lab
 
-**Version 1 — 27 November 2026.** Branch `phase4`. Progress: **3 of 11 faults proven live**
-(#1, #2, #5).
+**Version 1 — 27 November 2026.** Branch `phase4`. Progress: **6 of 11 faults proven live**
+(#1, #2, #4, #5, #6, #7; #3 run, result to confirm).
 
 This runbook is the exact procedure for planting each lab fault, asking Rootvex,
 checking the answer, and putting the lab back. **Lab only.** Rootvex never changes
@@ -101,7 +101,7 @@ and run the health check in between.
 | Expect | `OSPF hello/dead timer mismatch … 10/40 vs 5/20`; quotes `Hello 10, Dead 40` (R1) and `Hello 5, Dead 20` (R2) |
 | Undo (R2) | `configure terminal` / `interface GigabitEthernet1/0` / `no ip ospf hello-interval` / `end` |
 
-### #3 OSPF area mismatch — ⬜
+### #3 OSPF area mismatch — 🟡 run 27 Nov, result to confirm
 
 | | |
 |---|---|
@@ -111,7 +111,7 @@ and run the health check in between.
 | Expect | `OSPF area mismatch … area 0 vs area 1`; also possible: log line `mismatched area ID` |
 | Undo (R2) | `configure terminal` / `interface GigabitEthernet1/0` / `ip ospf 1 area 0` / `end` |
 
-### #4 OSPF MTU mismatch — ⬜
+### #4 OSPF MTU mismatch — ✅ proven 27 Nov
 
 | | |
 |---|---|
@@ -131,7 +131,7 @@ and run the health check in between.
 | Expect | Playbook *Interface down or flapping*; `R1 GigabitEthernet1/0 (10.0.12.1) is administratively shut down` |
 | Undo (R1) | `configure terminal` / `interface GigabitEthernet1/0` / `no shutdown` / `end` |
 
-### #6 Interface flapping — ⬜
+### #6 Interface flapping — ✅ proven 27 Nov
 
 | | |
 |---|---|
@@ -141,7 +141,7 @@ and run the health check in between.
 | Undo (R1) | Nothing to undo. `clear logging` (answer `yes`) resets the log for the next test |
 | Note | Flap R1 itself: in GNS3 a shutdown on R2 does not always take R1's line down. |
 
-### #7 BGP wrong remote AS — ⬜
+### #7 BGP wrong remote AS — ✅ proven 27 Nov
 
 | | |
 |---|---|
@@ -230,11 +230,11 @@ After each fault, add a row to `docs/SETUP_LOG.md` section 16:
 |---|---|---|
 | 1 | OSPF passive | ✅ 27 Nov |
 | 2 | OSPF timers | ✅ 27 Nov |
-| 3 | OSPF area | ⬜ |
-| 4 | OSPF MTU | ⬜ |
+| 3 | OSPF area | 🟡 run, result to confirm |
+| 4 | OSPF MTU | ✅ 27 Nov |
 | 5 | Interface shutdown | ✅ 27 Nov |
-| 6 | Interface flapping | ⬜ |
-| 7 | BGP wrong AS | ⬜ |
+| 6 | Interface flapping | ✅ 27 Nov |
+| 7 | BGP wrong AS | ✅ 27 Nov |
 | 8 | BGP shut down | ⬜ |
 | 9 | IPsec key | ⬜ |
 | 10 | No default route | ⬜ |
