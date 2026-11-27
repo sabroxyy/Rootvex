@@ -24,6 +24,8 @@ dependencies = [
     # Web prototype (local chat page)
     "fastapi==0.162.5",
     "uvicorn==0.54.0",
+    "lancedb>=0.41.0",
+    "pypdf>=7.2.0",
 ]
 
 [project.scripts]
