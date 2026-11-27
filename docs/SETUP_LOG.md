@@ -194,7 +194,7 @@ then plant each fault from `lab/FAULTS.md` on the live lab.
 | 5 | `shutdown` on R1 Gi1/0 | administratively down | same, confidence high | ✅ |
 | 3 | `ip ospf 1 area 1` on R2 Gi1/0 | area mismatch 0 vs 1 | area mismatch, quotes `Area 0` / `Area 1` | ✅ |
 | 4 | `ip mtu 1400` on R2 Gi1/0 + `clear ip ospf process` | EXSTART/EXCHANGE, MTU | MTU mismatch found | ✅ |
-| 6 | R1 Gi1/0 shut/no shut ×3 | flapping | visible evidence was Gi3/0 admin down (unused port); flapping finding not visible | ❓ |
+| 6 | R1 Gi1/0 shut/no shut ×2–3 | flapping | first run: missed (needed 3 downs); after fix: Gi1/0 flapping, 2 downs in 15 min | ✅ |
 | 7 | R2 `neighbor 203.0.113.2 remote-as 65101` | wrong remote AS | "peer in wrong AS" found (asked as the log line) | ✅ |
 | 8 | R2 `neighbor 203.0.113.2 shutdown` | admin shut | `Idle (Admin)` found (asked as the summary row) | ✅ |
 | 9 | BR1 wrong pre-shared key | PSK mismatch | asked as OSPF log lines → OSPF playbook → INIT on Tunnel0, fix "check ACLs" | ❌ rerun |
@@ -209,8 +209,14 @@ then plant each fault from `lab/FAULTS.md` on the live lab.
   nothing was found and the model chased spare port Gi3/0. Fixed: flapping = 2+
   downs in the last 15 minutes of the log (older boot/test events ignored); the
   interface playbook tells the model to ignore `unassigned` ports. R1's real log
-  is now the recorded scenario. 93 tests pass.
-- Remaining: rerun #6 and #9, do #10, #11.
+  is now the recorded scenario. 95 tests pass.
+- #6 rerun on the new code: `R1 GigabitEthernet1/0 is flapping: line protocol went
+  down 2 times in the last 15 minutes` ✅. The model's fix ("assign an IP") was
+  still kept because it said "flapping"; now a model answer only agrees if it
+  also names the same interface. 95 tests pass.
+- The workstation was still on an old commit (`27daef2`) for the first reruns:
+  always `git pull` and check `git log --oneline -1` before a test session.
+- Remaining: rerun #9, do #10, #11.
 
 ## Next
 
@@ -228,7 +234,7 @@ then plant each fault from `lab/FAULTS.md` on the live lab.
 - [x] Build the lab: `uv run python lab/build_gns3_lab.py --rebuild --start`
 - [x] `ssh rootvex@10.99.0.11` from the host; Phase 3 live-lab checks passed
 - [x] Phase 4 playbooks built and proven on recorded faults
-- [ ] Phase 4 live proof: plant the 11 faults in `lab/FAULTS.md`, check each top finding (7/11 done: #1–#5, #7, #8; #6 confirm, #9 rerun, #10–#11)
+- [ ] Phase 4 live proof: plant the 11 faults in `lab/FAULTS.md`, check each top finding (8/11 done: #1–#8; #9 rerun, #10–#11)
 - [ ] Optional: IOSv + IOSvL2 (CML-Personal) for a managed SW1
 - [ ] NVIDIA Container Toolkit (Phase 9)
 - [ ] Open WebUI (Phase 7, optional)

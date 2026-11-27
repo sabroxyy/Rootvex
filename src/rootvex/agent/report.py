@@ -137,7 +137,8 @@ def add_code_findings(report: Report, playbook: str, findings: list) -> None:
         return
     top = causes[0]
     model_text = f"{report.likely_cause} {report.proposed_fix}".lower()
-    if any(t in model_text for t in top.tags):
+    names_it = not top.must or any(m in model_text for m in top.must)
+    if names_it and any(t in model_text for t in top.tags):
         report.evidence += extra
         report.proposed_fix = report.proposed_fix or top.fix
         return

@@ -154,3 +154,52 @@ def test_confident_but_wrong_model_is_overruled_by_proven_code_finding():
     assert r.model_view.startswith("Both routers are DR")
     assert r.evidence[0].quote == "No Hellos (Passive interface)" and r.evidence[0].verified
     assert "not supported by the code checks" in r.to_text()
+
+
+def test_model_naming_the_wrong_interface_does_not_agree():
+    # Live fault #6: the model said "flapping because Gi3/0 is admin down" while code
+    # proved Gi1/0 flapping. "flapping" alone must not count as agreement.
+    tools, names = tools_for("interface_flap")
+    wrong = (
+        '{"likely_cause": "The link is flapping because GigabitEthernet3/0 is '
+        'administratively down", "proposed_fix": "interface Gi3/0 / no shutdown",'
+        ' "confidence": "high"}'
+    )
+    llm = ScriptedChatModel(
+        script=[AIMessage(content="plan"), AIMessage(content="done"), AIMessage(content=wrong)],
+        calls=[],
+    )
+    state = run_agent(
+        "R1 link is flapping",
+        llm,
+        tools,
+        AgentSettings(),
+        names,
+        playbooks=load_playbooks(playbook_dir()),
+    )
+    r = state["report"]
+    assert r.likely_cause.startswith("R1 GigabitEthernet1/0 is flapping")
+    assert "GigabitEthernet3/0" in r.model_view
+    assert "physical link" in r.proposed_fix
+
+
+def test_model_naming_the_same_interface_agrees():
+    tools, names = tools_for("interface_flap")
+    right = (
+        '{"likely_cause": "Gi1/0 on R1 is flapping", "proposed_fix": "check the cable on Gi1/0",'
+        ' "confidence": "high"}'
+    )
+    llm = ScriptedChatModel(
+        script=[AIMessage(content="plan"), AIMessage(content="done"), AIMessage(content=right)],
+        calls=[],
+    )
+    state = run_agent(
+        "R1 link is flapping",
+        llm,
+        tools,
+        AgentSettings(),
+        names,
+        playbooks=load_playbooks(playbook_dir()),
+    )
+    assert state["report"].likely_cause == "Gi1/0 on R1 is flapping"
+    assert state["report"].model_view == ""

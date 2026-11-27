@@ -32,6 +32,8 @@ class Finding:
     symptom: bool = False  # True: describes what is broken, not why
     # Words that show a model's answer names this same cause (lower case).
     tags: list[str] = field(default_factory=list)
+    # If set, the model must also name one of these (e.g. the interface) to agree.
+    must: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -50,6 +52,7 @@ class Signature:
     weight: int = 50
     symptom: bool = False
     tags: list[str] = field(default_factory=list)
+    must: list[str] = field(default_factory=list)  # may use {1}, {device}
 
 
 @dataclass
@@ -121,6 +124,7 @@ def find_signatures(book: Playbook, outputs: dict[tuple[str, str], str]) -> list
                         weight=sig.weight,
                         symptom=sig.symptom,
                         tags=sig.tags,
+                        must=[x for t in sig.must for x in iface_names(t.format(*args, **named))],
                     )
                 )
     return found
@@ -171,3 +175,25 @@ def playbook_dir() -> Path:
     from rootvex.config import PROJECT_ROOT
 
     return PROJECT_ROOT / "config" / "playbooks"
+
+
+_SHORT = {
+    "gigabitethernet": "gi",
+    "fastethernet": "fa",
+    "tengigabitethernet": "te",
+    "ethernet": "eth",
+    "tunnel": "tu",
+    "loopback": "lo",
+    "serial": "se",
+}
+
+
+def iface_names(name: str) -> list[str]:
+    """Long and short spellings of an interface, lower case: GigabitEthernet1/0 -> gi1/0."""
+    n = name.strip().lower()
+    names = [n]
+    for long, short in _SHORT.items():
+        if n.startswith(long):
+            names += [short + n[len(long) :], short + " " + n[len(long) :]]
+            break
+    return names

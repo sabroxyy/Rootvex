@@ -1,7 +1,7 @@
 # Rootvex Phase 4 Runbook — proving the playbooks on the live lab
 
-**Version 1 — 27 November 2026.** Branch `phase4`. Progress: **7 of 11 faults proven live**
-(#1–#5, #7, #8). #6 to confirm, #9 to rerun, #10–#11 to do.
+**Version 1 — 27 November 2026.** Branch `phase4`. Progress: **8 of 11 faults proven live**
+(#1–#8). #9 to rerun, #10–#11 to do.
 
 This runbook is the exact procedure for planting each lab fault, asking Rootvex,
 checking the answer, and putting the lab back. **Lab only.** Rootvex never changes
@@ -26,6 +26,7 @@ Router commands typed in Ubuntu fail with `command not found` — nothing change
 ```bash
 cd ~/projects/rootvex
 git switch phase4 && git pull && uv sync
+git log --oneline -1           # must match the latest commit on GitHub
 nmcli connection up tap-nw
 ip -br addr show tap-nw        # tap-nw UP 10.99.0.1/24
 ```
@@ -140,7 +141,7 @@ and run the health check in between.
 | Expect | Playbook *Interface down or flapping*; `R1 GigabitEthernet1/0 (10.0.12.1) is administratively shut down` |
 | Undo (R1) | `configure terminal` / `interface GigabitEthernet1/0` / `no shutdown` / `end` |
 
-### #6 Interface flapping — ❓ run 27 Nov, flapping finding not visible in the saved output
+### #6 Interface flapping — ✅ proven 27 Nov (after the flap fix)
 
 | | |
 |---|---|
@@ -242,7 +243,7 @@ After each fault, add a row to `docs/SETUP_LOG.md` section 16:
 | 3 | OSPF area | ✅ 27 Nov |
 | 4 | OSPF MTU | ✅ 27 Nov |
 | 5 | Interface shutdown | ✅ 27 Nov |
-| 6 | Interface flapping | ❓ to confirm |
+| 6 | Interface flapping | ✅ 27 Nov |
 | 7 | BGP wrong AS | ✅ 27 Nov |
 | 8 | BGP shut down | ✅ 27 Nov |
 | 9 | IPsec key | ❌ rerun with the exact question |

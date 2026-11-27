@@ -10,7 +10,7 @@ import ipaddress
 import re
 from collections import defaultdict
 
-from rootvex.playbooks import Finding, Proof, base
+from rootvex.playbooks import Finding, Proof, base, iface_names
 
 _IFACE_HEAD = re.compile(r"^(\S+) is (up|down|administratively down), line protocol is (\w+)", re.M)
 _ADDR = re.compile(r"Internet Address (\d+\.\d+\.\d+\.\d+)/(\d+), Area ([\d.]+)")
@@ -132,6 +132,7 @@ def ospf_compare(outputs: dict) -> list[Finding]:
                         proof=[Proof(dev, info["command"], info["passive_line"])],
                         weight=92,
                         tags=["passive"],
+                        must=iface_names(iface),
                     )
                 )
         if "auth" in a and "auth" in b and a["auth"] != b["auth"]:
@@ -305,6 +306,7 @@ def interface_flaps(outputs: dict) -> list[Finding]:
                         proof=[Proof(device, "show logging", lines[-1])],
                         weight=88,
                         tags=["flap"],
+                        must=iface_names(iface),
                     )
                 )
     return findings
